@@ -1,0 +1,63 @@
+Library version, soname and package name
+========================================
+
+HYPRE does not provide ABI backwards compatibility. The ABI might
+change, even between patch version updates (Z in X.Y.Z).
+
+This makes it inconvenient to follow the usual Debian practice of
+creating a library binary package libhypre-X.Y containing the
+library for a given ABI soname. The package would have to pass through
+the NEW queue as a new package each time, even for a minor patch update.
+
+For this reason, starting with 2.18.1, the library binary package is
+provided as libhypre without the soname version embedded in the name.
+Version dependency is enforced via a strict shlibs patch version
+dependency in the shlibs file,
+  libHYPRE __HYPRE_VERSION__ libhypre (>= __HYPRE_VERSION__), libhypre (<< __HYPRE_VERSION_NEXT__)
+
+This practice of strict shlibs dependency is not normally done since
+it impedes transition of packages into testing: all dependent packages
+need to be rebuilt against the new library version and transition at
+the same time. For hypre this is expected to be less of an
+inconvenience than the inconvenience of traversing the NEW queue with
+each version update. There are only 2* dependent packages:
+  petsc (*and slepc)
+  sundials
+
+
+64-bit HYPRE
+============
+
+The standard packages libhypre-dev and libhypre provide a standard
+HYPRE build, meaning that a standard int (32-bit) is used to define
+both HYPRE_Int and HYPRE_BigInt.
+
+Debian also provides 64-bit builds of HYPRE, but HYPRE implements two
+variants of this.
+
+The libhypre64-dev and libhypre64 packages provide a full 64-bit
+build using the --with-bigint configuration option, which means
+long long int is used for both HYPRE_Int and HYPRE_BigInt.
+
+The libhypre64m-dev and libhypre64m packages provide a mixed 64-bit
+build using the --with-mixedint configuration option, which means
+long long int (64 bit) is used for HYPRE_BigInt, while standard int
+(32-bit) is used for HYPRE_Int.
+
+You would need a 64-bit build to process extremely large systems
+(billions of degrees of freedom). But on cloud computing systems
+constrained by memory bandwidth, you might find that performance is
+relatively poor using the full 64-bit bigint library, libhypre64.
+In this situation you might obtain better performance with the
+mixedint library, libhypre64m.
+
+However, libhypre64m (mixedint) might not be safe. Segfaults have been
+reported in MPI tests. libhypre64m should be considered experimental.
+We provide libhypre64m in order to enable broader inspection and testing.
+Use libhypre64m with care (or do not use).
+See https://github.com/hypre-space/hypre/issues/326
+
+In summary:
+
+  libhypre64-dev   =  bigint
+  libhypre64m-dev  =  mixedint

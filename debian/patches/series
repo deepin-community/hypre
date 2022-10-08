@@ -1,0 +1,8 @@
+pilut_blas_mangle.patch
+configure.patch
+blas.patch
+complex.patch
+test.patch
+lapack.patch
+superlu_libs.patch
+library_name_extension.patch

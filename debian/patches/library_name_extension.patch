@@ -1,0 +1,96 @@
+Index: hypre/src/config/Makefile.config.in
+===================================================================
+--- hypre.orig/src/config/Makefile.config.in	2021-05-30 00:59:48.876063799 +0200
++++ hypre/src/config/Makefile.config.in	2021-05-30 00:59:48.876063799 +0200
+@@ -31,6 +31,7 @@
+ HYPRE_LIB_INSTALL = @HYPRE_LIBINSTALL@
+ HYPRE_INC_INSTALL = @HYPRE_INCINSTALL@
+ 
++HYPRE_LIBNAME_EXT = @HYPRE_LIBNAME_EXT@
+ HYPRE_LIB_SUFFIX = @HYPRE_LIBSUFFIX@
+ 
+ .SUFFIXES:
+Index: hypre/src/config/configure.in
+===================================================================
+--- hypre.orig/src/config/configure.in	2021-05-30 00:59:48.876063799 +0200
++++ hypre/src/config/configure.in	2021-05-30 00:59:48.876063799 +0200
+@@ -222,6 +222,13 @@
+ [hypre_using_debug=no]
+ )
+ 
++AC_ARG_WITH(libname-ext,
++AS_HELP_STRING([--with-libname-ext=EXT],
++               [provide extension to HYPRE library name
++                e.g. --with-libname-ext=64 generates libHYPRE64.so]),
++[HYPRE_LIBNAME_EXT=$withval]
++)
++
+ AC_ARG_ENABLE(shared,
+ AS_HELP_STRING([--enable-shared],
+                [Build shared libraries (default is NO).]),
+@@ -2436,6 +2443,10 @@
+ AC_SUBST(FLIBS)
+ AC_SUBST(FCLIBS)
+ dnl *********************************************************************
++dnl * extension to name of hypre libraries
++dnl *********************************************************************
++AC_SUBST(HYPRE_LIBNAME_EXT)
++dnl *********************************************************************
+ dnl * suffix for hypre libraries
+ dnl *********************************************************************
+ AC_SUBST(HYPRE_LIBSUFFIX)
+Index: hypre/src/lib/Makefile
+===================================================================
+--- hypre.orig/src/lib/Makefile	2021-05-30 00:59:48.876063799 +0200
++++ hypre/src/lib/Makefile	2021-05-30 00:59:48.876063799 +0200
+@@ -50,7 +50,7 @@
+ $(BLASFILES)\
+ $(LAPACKFILES)
+ 
+-SONAME = libHYPRE-${HYPRE_RELEASE_VERSION}${HYPRE_LIB_SUFFIX}
++SONAME = libHYPRE${HYPRE_LIBNAME_EXT}-${HYPRE_RELEASE_VERSION}${HYPRE_LIB_SUFFIX}
+ SOLIBS = ${DSUPERLU_LIBS} ${MPILIBDIRS} ${MPILIBS} ${LAPACKLIBDIRS} ${LAPACKLIBS}\
+  ${BLASLIBDIRS} ${BLASLIBS} ${LIBS} ${FLIBS}
+ 
+@@ -59,7 +59,7 @@
+ # Targets
+ ##################################################################
+ 
+-all: libHYPRE${HYPRE_LIB_SUFFIX}
++all: libHYPRE${HYPRE_LIBNAME_EXT}${HYPRE_LIB_SUFFIX}
+ 	cp -fR libHYPRE* ${HYPRE_BUILD_DIR}/lib
+ 
+ install: all
+@@ -77,8 +77,8 @@
+ 
+ # NOTE: Some of the FILES symbols below can be empty, so they are listed on an
+ # AR line with at least one nonempty symbol
+-libHYPRE.a: ${FILES_HYPRE}
+-	@echo  "Building libHYPRE ... "
++libHYPRE${HYPRE_LIBNAME_EXT}.a: ${FILES_HYPRE}
++	@echo  "Building libHYPRE${HYPRE_LIBNAME_EXT} ... "
+ 	rm -f $@
+ 	${AR} $@ $(FEIHYPREFILES) $(FEMLIFILES) $(IJMVFILES)
+ 	${AR} $@ $(EUCLIDFILES) $(PARASAILSFILES) $(PILUTFILES) $(DISTMATRIXFILES)
+@@ -96,7 +96,7 @@
+ 	${AR} $@ $(UTILITIESFILES) $(BLASFILES) $(LAPACKFILES)
+ 	${RANLIB} $@
+ 
+-libHYPRE.so libHYPRE.dylib: ${FILES_HYPRE}
++libHYPRE${HYPRE_LIBNAME_EXT}.so libHYPRE${HYPRE_LIBNAME_EXT}.dylib: ${FILES_HYPRE}
+ 	@echo  "Building $@ ... "
+ 	${BUILD_CC_SHARED} -o ${SONAME} ${FILES_HYPRE} ${SOLIBS} ${SHARED_SET_SONAME}${SONAME} ${SHARED_OPTIONS} ${LDFLAGS}
+ 	ln -s ${SONAME} $@
+Index: hypre/src/test/Makefile
+===================================================================
+--- hypre.orig/src/test/Makefile	2021-05-29 12:19:31.984505727 +0200
++++ hypre/src/test/Makefile	2021-05-30 01:01:16.501600040 +0200
+@@ -49,7 +49,7 @@
+ endif
+ 
+ LFLAGS =\
+- -L${HYPRE_BUILD_DIR}/lib -lHYPRE\
++ -L${HYPRE_BUILD_DIR}/lib -lHYPRE${HYPRE_LIBNAME_EXT}\
+  ${XLINK}\
+  ${DSUPERLU_LIBS}\
+  ${SUPERLU_LIBS}\

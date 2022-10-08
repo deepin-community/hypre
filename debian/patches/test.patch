@@ -1,0 +1,203 @@
+Index: hypre/src/test/runtest.sh
+===================================================================
+--- hypre.orig/src/test/runtest.sh	2021-06-29 11:22:59.083699137 +0200
++++ hypre/src/test/runtest.sh	2021-06-29 11:22:59.079698839 +0200
+@@ -1,4 +1,4 @@
+-#!/bin/sh
++#!/bin/bash
+ # Copyright 1998-2019 Lawrence Livermore National Security, LLC and other
+ # HYPRE Project Developers. See the top-level COPYRIGHT file for details.
+ #
+@@ -85,8 +85,8 @@
+       up*)
+          CPUS_PER_NODE=8
+          POE_NUM_PROCS=$2
+-         POE_NUM_NODES=`expr $POE_NUM_PROCS + $CPUS_PER_NODE - 1`
+-         POE_NUM_NODES=`expr $POE_NUM_NODES / $CPUS_PER_NODE`
++         POE_NUM_NODES=$(($POE_NUM_PROCS + $CPUS_PER_NODE - 1))
++         POE_NUM_NODES=$(($POE_NUM_NODES / $CPUS_PER_NODE))
+          shift
+          shift
+          MY_ARGS="$*"
+@@ -144,7 +144,7 @@
+ # determine the "number of nodes" desired by dividing the "number of processes"
+ # by the "number of CPU's per node" which can't be determined dynamically (real
+ # ugly hack)
+-function CalcNodes
++CalcNodes()
+ {
+    NUM_PROCS=1
+    NUM_NODES=1
+@@ -176,8 +176,8 @@
+    do
+       case $1 in
+          -n*) NUM_PROCS=$2
+-            NUM_NODES=`expr $NUM_PROCS + $CPUS_PER_NODE - 1`
+-            NUM_NODES=`expr $NUM_NODES / $CPUS_PER_NODE`
++            NUM_NODES=$(($NUM_PROCS + $CPUS_PER_NODE - 1))
++            NUM_NODES=$(( $NUM_NODES / $CPUS_PER_NODE))
+             return $NUM_NODES
+             ;;
+          *) shift
+@@ -188,7 +188,7 @@
+ }
+ 
+ # extract the "number of processes/task"
+-function CalcProcs
++CalcProcs()
+ {
+    while [ "$1" ]
+    do
+@@ -204,7 +204,7 @@
+ 
+ # check the path to the executable if the executable exists; save the name to
+ # ExecFileNames
+-function CheckPath
++CheckPath()
+ {
+    while [ "$1" ]
+    do
+@@ -233,7 +233,7 @@
+ #
+ # on ubgl, as of 8/2006, only allowable number of nodes are 32, 128 and
+ # multiples of 512
+-function PsubCmdStub
++PsubCmdStub()
+ {
+    CalcNodes "$@"
+    NumNodes=$?
+@@ -266,7 +266,7 @@
+ }
+ 
+ # read job file line by line saving arguments
+-function ExecuteJobs
++ExecuteJobs()
+ {
+    StartDir=$1
+    WorkingDir=$2
+@@ -275,7 +275,7 @@
+    BatchFlag=0               # #BATCH option detected flag
+    BatchCount=0              # different numbering for #Batch option
+    PrevPid=0
+-   SavePWD=`pwd`
++   SavePWD=$(pwd)
+ ##
+ ##     move to specified directory
+    cd $WorkingDir
+@@ -290,12 +290,12 @@
+ 
+          "#END"*) BatchFlag=0
+             chmod +x $BatchFile
+-            PsubCmd="$PsubCmd -o $OutFile -e $ErrFile `pwd`/$BatchFile"
++            PsubCmd="$PsubCmd -o $OutFile -e $ErrFile $(pwd)/$BatchFile"
+             if [ "$NoRun" -eq 0 ] ; then
+-               CmdReply=`$PsubCmd`
++               CmdReply=$($PsubCmd)
+             fi
+-            PrevPid=`echo $CmdReply | cut -d \  -f 2`
+-            while [ "`pstat | grep $PrevPid`" ]
++            PrevPid=$(echo $CmdReply | cut -d \  -f 2)
++            while [ "$(pstat | grep $PrevPid)" ]
+             do
+                sleep $JobCheckInterval
+             done
+@@ -360,7 +360,7 @@
+                      BatchFile=$TestName.batch.$BatchCount
+                      BatchCount=BatchCount+1
+                      cat > $BatchFile <<- EOF
+-cd `pwd`
++cd $(pwd)
+ ${RunString}
+ EOF
+                   else
+@@ -374,7 +374,7 @@
+             ;;
+ 
+          *)
+-            NOTBLANK=`echo $InputLine | sed 's/[ \n\t]//g'`
++            NOTBLANK=$(echo $InputLine | sed 's/[ \n\t]//g')
+             if [ "$NOTBLANK" ] ; then
+                echo "Found something unexpected in $WorkingDir/$TestName.jobs"
+                echo "--> $InputLine"
+@@ -455,8 +455,8 @@
+    fi
+ }
+ 
+-# process files
+-function StartCrunch
++# process files()
++StartCrunch()
+ {
+    rm -f ~/insure.log*
+ 
+@@ -521,15 +521,15 @@
+          ;;
+       -D)
+          shift
+-         eval export `echo $1`=1
++         eval export $(echo $1)=1
+          shift
+          ;;
+       *) InputString=$1
+          if [ "$InputString" ] ; then
+             if [ -r $InputString ] ; then
+-               FilePart=`basename $InputString .sh`
+-               DirPart=`dirname $InputString`
+-               CurDir=`pwd`
++               FilePart=$(basename $InputString .sh)
++               DirPart=$(dirname $InputString)
++               CurDir=$(pwd)
+                TestDirNames="$TestDirNames $DirPart"
+                case $DirPart in
+                   TEST_examples)
+@@ -594,7 +594,7 @@
+   for errfile in $( find $dir -name "*.err" )
+   do
+     if (egrep -f runtest.filters $errfile > /dev/null) ; then
+-        original=`dirname $errfile`/`basename $errfile .err`.fil
++        original=$(dirname $errfile)/$(basename $errfile .err).fil
+         echo "This file contains the original copy of $errfile before filtering" > $original
+         cat $errfile >> $original
+         mv $errfile $errfile.tmp
+Index: hypre/src/test/checktest.sh
+===================================================================
+--- hypre.orig/src/test/checktest.sh	2021-06-29 11:22:59.083699137 +0200
++++ hypre/src/test/checktest.sh	2021-06-29 11:22:59.079698839 +0200
+@@ -1,4 +1,4 @@
+-#!/bin/sh
++#!/bin/bash
+ # Copyright 1998-2019 Lawrence Livermore National Security, LLC and other
+ # HYPRE Project Developers. See the top-level COPYRIGHT file for details.
+ #
+Index: hypre/src/test/cleantest.sh
+===================================================================
+--- hypre.orig/src/test/cleantest.sh	2021-06-29 11:22:59.083699137 +0200
++++ hypre/src/test/cleantest.sh	2021-06-29 11:22:59.079698839 +0200
+@@ -1,4 +1,4 @@
+-#!/bin/sh
++#!/bin/bash
+ # Copyright 1998-2019 Lawrence Livermore National Security, LLC and other
+ # HYPRE Project Developers. See the top-level COPYRIGHT file for details.
+ #
+Index: hypre/src/test/runcheck.sh
+===================================================================
+--- hypre.orig/src/test/runcheck.sh	2021-06-29 11:22:59.083699137 +0200
++++ hypre/src/test/runcheck.sh	2021-06-29 11:22:59.079698839 +0200
+@@ -29,7 +29,7 @@
+    saved_key = 0;
+    ln = 0;
+    # Read saved file data into array
+-   while (getline < sfilename)
++   while ( (getline < sfilename) > 0 )
+    {
+       ln++;
+       if(NF > 0 && substr($1,1,1) !~ /#/)
+@@ -53,7 +53,7 @@
+    # Read out file data into array
+    out_key=0;
+    ln=0;
+-   while (getline < ofilename)
++   while ( (getline < ofilename) > 0 )
+    {
+       ln++;
+       if(NF > 0 && substr($1,1,1) !~ /#/)

@@ -1,0 +1,7 @@
+Tests: test-hypre
+Depends: libhypre, libhypre-dev, @builddeps@
+
+# hypre64 is not available on 32-bit systems (because of blas64 restrictions)
+Tests: test-hypre64, test-hypre64m
+Depends: libhypre64, libhypre64-dev, libhypre64m, libhypre64m-dev, @builddeps@
+Architecture: amd64 arm64 mips64el ppc64el s390x alpha kfreebsd-amd64 ia64 ppc64 riscv64 sparc64

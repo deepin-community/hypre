@@ -1,0 +1,1 @@
+libHYPRE __HYPRE_VERSION__ libhypre (>= __HYPRE_VERSION__), libhypre (<< __HYPRE_VERSION_NEXT__)

@@ -1,0 +1,10 @@
+--- a/src/FEI_mv/femli/Makefile
++++ b/src/FEI_mv/femli/Makefile
+@@ -29,6 +29,7 @@
+ 
+ C_COMPILE_FLAGS =\
+  -DMLI_SUPERLU\
++ -DLAPACKLIBS=${LAPACKLIBS}\
+  ${MLI_INCLUDES}\
+  ${CINCLUDES}
+  

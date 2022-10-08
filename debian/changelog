@@ -1,0 +1,606 @@
+hypre (2.22.1-3) unstable; urgency=medium
+
+  * Team upload.
+  * restrict hypre64 tests in debian/test to only those arches which
+    provide it. Not available on 32-bit arches since blas64 is not
+    available there. Closes: #996895.
+
+ -- Drew Parsons <dparsons@debian.org>  Thu, 21 Oct 2021 14:12:54 +0200
+
+hypre (2.22.1-2) unstable; urgency=medium
+
+  * Team upload.
+  * upload HYPRE 2.22 to unstable.
+
+ -- Drew Parsons <dparsons@debian.org>  Sat, 16 Oct 2021 09:31:27 +0200
+
+hypre (2.22.1-1exp1) experimental; urgency=medium
+
+  * Team upload.
+  * New upstream release.
+  * provide 64-bit only on arches where libblas64-dev, liblapack64-dev
+    are available. Closes: #961645.
+    - Test for DEB_HOST_ARCH_BITS=64 in debian/rules
+      (following the pattern used by lapack)
+  * skip TEST_bench in debian/tests (autopkgtest),
+    because life is too short
+  * clean test dir before building tests for debian/tests
+  * Standards-Version: 4.6.0
+
+ -- Drew Parsons <dparsons@debian.org>  Thu, 16 Sep 2021 08:52:45 +0200
+
+hypre (2.21.0-1exp1) experimental; urgency=medium
+
+  * Team upload.
+  * New upstream release.
+    - src/config/boostrap was renamed to update.sh
+      Update debian patch configure.patch to mark it as #!/bin/bash
+  * provide 64-bit builds
+    - --with-bigint provided in packages libhypre64-dev and libhypre64
+      (HYPRE_BigInt and HYPRE_Int both 64 bit)
+    - --with-mixedint provided in libhypre64m-dev and libhypre64m
+      (64-bit HYPRE_BigInt with 32-bit HYPRE_Int)
+      But libhypre64m (mixedint) might not be safe. Segfaults have been
+      reported in MPI tests. libhypre64m should be considered
+      experimental. See https://github.com/hypre-space/hypre/issues/326
+    - debian patch library_name_extension.patch adds
+      --with-libname-ext configure option and HYPRE_LIBNAME_EXT
+      Makefile variable to add extension to library name, to generate
+      libHYPRE64.so or libHYPRE64m.so
+    - document 64-bit builds in README.Debian. mixedint libhypre64m
+      might give better performance than bigint libhypre64 on cloud
+      computing infrastructure with memory bandwidth constraints.
+  * drop FEI support (libHYPRE_FEI.so).
+    FEI is an external library released by Sandia NL (but no longer
+    developed) which needs to be available at build time (defining
+    fei_defs.h et al.) in order for HYPRE to support it. FEI source is
+    available with Trilinos source, but has not been packaged for
+    Debian. FEI source was previously provided with HYPRE (in
+    src/FEI_mv/fei-base), but was removed in hypre 2.17.0.
+  * provide single library libHYPRE.so.
+    i.e. don't split out libHYPRE_core.so, since libHYPRE_FEI.so is
+    now dropped
+    - drop debian patches install.patch and
+      shlibs-interlink-libHYPRE.so.patch
+  * report test timings
+    - skip TEST_bench at build time (takes a long time to complete)
+  * update debian patch test.patch to make awk script in runcheck.sh
+    validate that data is being read ((getline < ofilename) > 0).
+    Otherwise a memory-leaking infinite loop is formed if output files
+    do not exist (e.g. test could not be run), since getline returns -1
+    if the file is missing.
+  * skip selected tests at build time and in debian/tests (autopkgtest)
+    - TEST_bench, takes an unacceptably long time to run (more than
+      all other tests combined). Skip at build-time, run in autopkgtest.
+    - TEST_examples, TEST_fei, executables are not available
+    - TEST_timing, the unusual shell arithmetic in efficiency.sh is
+      not supported
+    - build-tests are NOT run for the libhypre64m (mixedint) build, due
+      to segfaults in MPI tests. libhypre64m might not be safe,
+      see above (and https://github.com/hypre-space/hypre/issues/326 )
+
+ -- Drew Parsons <dparsons@debian.org>  Thu, 03 Jun 2021 23:23:24 +0200
+
+hypre (2.20.0-1exp2) experimental; urgency=medium
+
+  * Team upload.
+  * rebuild against libsuperlu-dist6.4
+
+ -- Drew Parsons <dparsons@debian.org>  Sat, 16 Jan 2021 09:14:37 +1100
+
+hypre (2.20.0-1exp1) experimental; urgency=medium
+
+  * Team upload.
+  * New upstream release.
+    - has versioned Build-Depends libsuperlu-dist-dev (>= 6.3)
+      (precision-dependent structures dLUstruct_t etc)
+  * Standards-Version: 4.5.1
+  * debhelper compatibility level 13
+  * enclose Adam C. Powell, IV's name in quotes in this changelog
+
+ -- Drew Parsons <dparsons@debian.org>  Mon, 11 Jan 2021 22:36:43 +1100
+
+hypre (2.18.2-1) unstable; urgency=medium
+
+  * Team upload.
+  * New upstream release.
+
+ -- Drew Parsons <dparsons@debian.org>  Tue, 05 Nov 2019 02:27:52 +0900
+
+hypre (2.18.1-1) experimental; urgency=medium
+
+  * Team upload.
+  * New upstream release.
+  * Standards-Version: 4.4.1
+  * Provide library binary package as libhypre without the soname
+    version embedded in the package name. Enforce version dependency
+    through strict shlibs dependency. This is to workaround lack of
+    ABI backwards compatibility and keep minor version updates being
+    delayed in the NEW queue. See README.Debian.
+
+ -- Drew Parsons <dparsons@debian.org>  Sat, 26 Oct 2019 12:36:52 +0800
+
+hypre (2.18.0-1exp1) experimental; urgency=medium
+
+  * Team upload.
+  * New upstream release.
+
+ -- Drew Parsons <dparsons@debian.org>  Mon, 30 Sep 2019 10:51:22 +0800
+
+hypre (2.17.0-1exp1) experimental; urgency=medium
+
+  * Team upload.
+  * New upstream release.
+    - removed FEI_mv/ml subdirectory and several FEI header files
+    - now dual licensed as Apache-2.0 OR MIT, at your option,
+      instead of LGPL-2.1.
+    - applies debian patch bootstrap-path.patch
+  * use pkg-config to configure location of blas and lapack libraries
+
+ -- Drew Parsons <dparsons@debian.org>  Sat, 24 Aug 2019 10:24:00 +0800
+
+hypre (2.16.0-4) unstable; urgency=medium
+
+  * Team upload.
+  * fix handling of nocheck build option
+
+ -- Drew Parsons <dparsons@debian.org>  Sat, 27 Jul 2019 00:15:05 +0800
+
+hypre (2.16.0-3) unstable; urgency=medium
+
+  * Team upload.
+  * don't run build-time tests if the nocheck option has been
+    specified in DEB_BUILD_OPTIONS
+  * status
+
+ -- Drew Parsons <dparsons@debian.org>  Fri, 26 Jul 2019 17:17:44 +0800
+
+hypre (2.16.0-2) unstable; urgency=medium
+
+  * Team upload.
+  * Standards-Version: 4.4.0
+
+ -- Drew Parsons <dparsons@debian.org>  Sun, 14 Jul 2019 14:42:09 +0800
+
+hypre (2.16.0-1exp1) experimental; urgency=medium
+
+  * Team upload.
+  * New upstream release.
+    - remove patches applied upstream:
+      fix_race_condition_b99fe77.patch
+      fix_race_condition_97cd175.patch
+  * Update debian/watch to new upstream repo,
+    https://github.com/hypre-space/hypre
+  * Standards-Version: 4.3.0
+  * debhelper compatibility level 12
+  * debian patch bootstrap-path.patch adds path to ./update-release.sh
+    in src/config/bootstrap
+
+ -- Drew Parsons <dparsons@debian.org>  Sat, 13 Apr 2019 22:49:51 +0800
+
+hypre (2.15.1-5) unstable; urgency=medium
+
+  * Team upload.
+  * Add debian patches:
+      fix_race_condition_b99fe77.patch
+      fix_race_condition_97cd175.patch
+      - applies upstream commits b99fe77 and 97cd175 (partial,
+        removing new BigInt references), aiming to reduce test
+        failures due to race conditions.
+      - addresses Bug#910104.
+
+ -- Drew Parsons <dparsons@debian.org>  Sat, 13 Apr 2019 11:30:08 +0800
+
+hypre (2.15.1-4) unstable; urgency=medium
+
+  * Team upload.
+  * add armel to the no-test blacklist
+
+ -- Drew Parsons <dparsons@debian.org>  Sat, 22 Dec 2018 12:01:40 +0100
+
+hypre (2.15.1-3) unstable; urgency=medium
+
+  * Team upload.
+  * Disable build tests for ia64 (consistently times out).
+
+ -- Drew Parsons <dparsons@debian.org>  Fri, 21 Dec 2018 22:54:58 +0100
+
+hypre (2.15.1-2) unstable; urgency=medium
+
+  * Team upload.
+  * upload to unstable
+    - note libHYPRE is now split into only 2 sublibs:
+      libHYPRE_core.so and libHYPRE_FEI.so
+      Link with '-lHYPRE_FEI -lHYPRE_core'
+      (see README.Debian)
+  * add libdir to LD_LIBRARY_PATH at build time only when running tests
+
+ -- Drew Parsons <dparsons@debian.org>  Thu, 29 Nov 2018 22:53:15 +0800
+
+hypre (2.15.1-1exp1) experimental; urgency=medium
+
+  * Team upload.
+  * New upstream release.
+  * reorganise sublibs to split libHYPRE into only 2 components:
+       libHYPRE_core.so
+       libHYPRE_FEI.so
+    Circular dependencies between components prevent libHYPRE_core.so
+    from being split further. Closes: #902102.
+    - create new split libs in shlibs-interlink-libHYPRE.so.patch
+    - drop install.patch, shlibs-interlink-sublibs.patch
+    - test.patch: update link flags in src/test/Makefile
+  * debian/rules dh_auto_clean: remove src/test/$TEST.{stdout,stderr}
+
+ -- Drew Parsons <dparsons@debian.org>  Mon, 19 Nov 2018 13:07:30 +0800
+
+hypre (2.14.0-5) unstable; urgency=medium
+
+  * Team upload.
+  * remove patchelf from Build-Depends. Its usage in
+    shlibs-interlink-sublibs.patch is currently disabled anyway, and
+    it is not available on mips,mipsel.
+
+ -- Drew Parsons <dparsons@debian.org>  Tue, 06 Nov 2018 14:44:35 +0800
+
+hypre (2.14.0-4) unstable; urgency=medium
+
+  * Team upload.
+  * add missing library links for libHYPRE_mli.so and
+    libHYPRE_parcsr_mv.so to superlu (patch superlu_libs.patch)
+    - Bug#902102: patchelf is currently broken (bug#903396) and can't
+      be used to resolve circular dependencies. Instead manually invoke
+      "-lHYPRE_FEI -lHYPRE_mli -lHYPRE_FEI" or
+      "-lHYPRE_parcsr_mv -lHYPRE_parcsr_ls -lHYPRE_parcsr_mv" if needed.
+
+ -- Drew Parsons <dparsons@debian.org>  Fri, 28 Sep 2018 02:44:37 +0800
+
+hypre (2.14.0-3) unstable; urgency=medium
+
+  * Team upload.
+  * Update debian/watch to hypre github repository. Upstream have been
+    shy about announcing their latest versions on their website.
+  * run tests at build time
+  * add debian/tests (autopkgtest)
+  * Standards-Version: 4.2.1
+
+ -- Drew Parsons <dparsons@debian.org>  Wed, 26 Sep 2018 18:09:26 +0800
+
+hypre (2.14.0-2) unstable; urgency=medium
+
+  * Team upload.
+  * Standards-Version: 4.1.4
+
+ -- Drew Parsons <dparsons@debian.org>  Sun, 08 Apr 2018 12:16:15 +0800
+
+hypre (2.14.0-1exp1) experimental; urgency=medium
+
+  * Team upload.
+  * New upstream version 2.14.0
+    - new AIR AMG solver
+    - refresh debian patches, add superlu_libs.patch to link against
+      libsuper_dist.so
+  * d/rules: read upstream version from debian/changelog
+  * Standards-Version: 4.1.3
+  * debhelper compatibility level 11
+  * update VCS tags to salsa.debian.org
+
+ -- Drew Parsons <dparsons@debian.org>  Tue, 27 Mar 2018 14:05:07 +0800
+
+hypre (2.13.0-2) unstable; urgency=medium
+
+  * Team upload.
+  * Standards-Version: 4.1.2
+
+ -- Drew Parsons <dparsons@debian.org>  Tue, 12 Dec 2017 03:47:42 +0800
+
+hypre (2.13.0-1exp1) experimental; urgency=medium
+
+  * Team upload.
+  * New upstream version.
+    - new multigrid reduction (MGR) solver
+    - updates AMG Hybrid solver with BoomerAMG
+    - now uses external SuperLU (remove debian superlu_internal.patch)
+      and SuperLU-Dist.
+      Build-Depends: libsuperlu-dev, libsuperlu-dist-dev
+    - regression: breaks build of distributed_ls/pilut. Fixed with
+      debian patch pilut_blas_mangle.patch to use external BLAS.
+  * libhypre-dev depends on optimised OpenBLAS or ATLAS to provide
+    blas and lapack, where available. 
+
+ -- Drew Parsons <dparsons@debian.org>  Fri, 24 Nov 2017 13:52:43 +0800
+
+hypre (2.12.1-1exp1) experimental; urgency=medium
+
+  * Team upload.
+  * New upstream version.
+    - adds GPU support (not yet activated in Debian)
+    - adds support for single and quad precision floating point numbers
+
+ -- Drew Parsons <dparsons@debian.org>  Wed, 18 Oct 2017 19:17:17 +0800
+
+hypre (2.11.2-2) unstable; urgency=medium
+
+  * Team upload.
+  * Standards-Version: 4.1.1
+  * debian/control: Priority: optional (extra is deprecated)
+
+ -- Drew Parsons <dparsons@debian.org>  Wed, 18 Oct 2017 17:57:39 +0800
+
+hypre (2.11.2-1) experimental; urgency=medium
+
+  * Team upload.
+  * New upstream version.
+  * Standards-Version: 4.1.0
+  * Refresh debian patches
+    - "hypre_lapack.h" now included where needed
+    - blas.patch: for multiarch blas, BLASLIBDIRS is returned empty
+      instead of "null". Thanks Adrian Bunk. Closes: #877054.
+    - declare src/test/{check,clean}test.sh as bash scripts (they use
+      shopts), simplify patch for runtest.sh
+
+ -- Drew Parsons <dparsons@debian.org>  Fri, 29 Sep 2017 13:58:55 +0800
+
+hypre (2.11.1-4) unstable; urgency=medium
+
+  * Team upload.
+  * update debian/watch to use https.
+  * Standards-Version: 4.0.0
+  * debhelper compatibility level 10
+    - remove Build-Depends: dh-autoreconf (now automatic with dh 10)
+
+ -- Drew Parsons <dparsons@debian.org>  Tue, 01 Aug 2017 14:23:55 +0800
+
+hypre (2.11.1-3) unstable; urgency=medium
+
+  * Team upload.
+  * Don't install internal superlu header files in /usr/include/hypre
+    It may interfere with access to the system superlu, if a client
+    uses both superlu and hypre.
+
+ -- Drew Parsons <dparsons@debian.org>  Fri, 04 Nov 2016 02:07:36 +0800
+
+hypre (2.11.1-2) unstable; urgency=medium
+
+  * Team upload.
+  * Upload to unstable.
+
+ -- Drew Parsons <dparsons@debian.org>  Thu, 03 Nov 2016 11:30:19 +0800
+
+hypre (2.11.1-1exp3) experimental; urgency=medium
+
+  * Team upload.
+  * fix build flags (don't use -march=native for general packages)
+
+ -- Drew Parsons <dparsons@debian.org>  Wed, 02 Nov 2016 22:23:36 +0800
+
+hypre (2.11.1-1exp2) experimental; urgency=medium
+
+  * Team upload.
+  * Build with internal not external superlu.
+  * Mark libhypre-dev, libhypre-2.11.1 as Multi-Arch: same.
+
+ -- Drew Parsons <dparsons@debian.org>  Wed, 02 Nov 2016 19:48:23 +0800
+
+hypre (2.11.1-1exp1) experimental; urgency=medium
+
+  * Team upload.
+  * New upstream version.
+    - header files collected in /usr/include/hypre. Closes: #703729.
+  * Updated debian/rules and debian/patches. Thanks Christophe Trophime.
+  * Updated debian/watch.
+
+ -- Drew Parsons <dparsons@debian.org>  Tue, 01 Nov 2016 20:31:30 +0800
+
+hypre (2.8.0b-4) unstable; urgency=medium
+
+  * Team upload.
+  * Apply patch from Bas Couwenberg <sebastic@xs4all.nl> to turn libhypre-dev
+    into an arch:any package, to be able to specify a stricter version
+    restriction against libhypre-2.8.0b.  Closes: #837109
+  * Bump Standards-Version to 3.9.8, no changes needed.
+
+ -- Mattia Rizzolo <mattia@debian.org>  Thu, 08 Sep 2016 20:36:58 +0000
+
+hypre (2.8.0b-3) unstable; urgency=medium
+
+  * Team upload.
+  * Run wrap-and-sort.
+  * Bump debhelper compat level to 9
+  * Drop useless build-dependency on quilt.
+  * Bump Standards-Version to 3.9.7, no changes needed.
+  * Use HTTPS in the Vcs-* fields.
+  * debian/control: fix weak-library-dev-dependency lintian error.
+  * Fix FTBFS by using libtoolize --force.  Closes: #815781
+
+ -- Mattia Rizzolo <mattia@debian.org>  Mon, 29 Feb 2016 12:19:49 +0000
+
+hypre (2.8.0b-2) unstable; urgency=medium
+
+  * Team upload.
+  * Use libsuperlu-dev instead of libsuperlu3-dev.
+  * Update alternative dependencies on BLAS/LAPACK development libraries.
+  * Add watch file.
+
+ -- Sébastien Villemot <sebastien@debian.org>  Thu, 27 Feb 2014 21:22:23 +0100
+
+hypre (2.8.0b-1) unstable; urgency=low
+
+  * New upstream using babel source (closes: #570055, #617406).
+  * Changed 2.8.0 to 2.8.0b full version in package names etc.
+  * Rebuild with new mpi-defaults (closes: #652310).
+  * Split shlibs.patch into fgmres-lib.patch, flexgmres-to-parcsr_ls.patch and
+    and shlibs-interlink.patch for easier forward-porting.
+  * Patched to install all libraries.
+  * Patched configure.in so "aclocal -I ." works.
+  * Move aside files which would otherwise be destroyed by make clean.
+  * Added build-arch and build-indep targets to debian/rules.
+  * Removed unnecessary patch and unpatch targets from debian/rules.
+  * Removed spurious hypre-doc reference from control.
+  * Updated VCS info in control.
+  * Bumped Standards-Version.
+
+ -- "Adam C. Powell, IV" <hazelsct@debian.org>  Wed, 21 Dec 2011 08:59:27 -0500
+
+hypre (2.4.0b-7) unstable; urgency=low
+
+  * Changed BLAS and LAPACK libs to blas and lapack (closes: #590984).
+  * Changed to Debian Science maintenance with Adam Powell as an uploader.
+  * Added lintian overrides for Adam Powell's name.
+  * Changed to source format 3.0 (quilt).
+  * Other control file updates.
+  * Bumped Standards-Version.
+
+ -- "Adam C. Powell, IV" <hazelsct@debian.org>  Wed, 04 Aug 2010 21:23:58 -0400
+
+hypre (2.4.0b-6) unstable; urgency=low
+
+  * Added libltdl-dev to Build-Depends (closes: #559930).
+
+ -- "Adam C. Powell, IV" <hazelsct@debian.org>  Mon, 07 Dec 2009 17:22:27 -0500
+
+hypre (2.4.0b-5) unstable; urgency=low
+
+  * Added libtool to Build-Depends, run libtoolize, and copy ltdl.{c,h} into
+    src/babel-runtime/sidl (closes: #559834).
+  * Copy new config.{sub,guess} into config dir (closes: #559484).
+
+ -- "Adam C. Powell, IV" <hazelsct@debian.org>  Mon, 07 Dec 2009 13:29:30 -0500
+
+hypre (2.4.0b-4) unstable; urgency=low
+
+  * Added automake and autoconf to Build-Depends, and aclocal and autoconf to
+    build target (closes: #545056, #554709)
+  * Added README.source to describe patch system.
+  * Bumped Standards-Version.
+
+ -- "Adam C. Powell, IV" <hazelsct@debian.org>  Tue, 17 Nov 2009 10:10:47 -0500
+
+hypre (2.4.0b-3) unstable; urgency=low
+
+  * Removed backslash from Build-Depends (closes: #535301).
+  * Updated Standards-Version.
+  * Updated debhelper Build-Depends version.
+
+ -- "Adam C. Powell, IV" <hazelsct@debian.org>  Mon, 20 Jul 2009 15:30:30 -0400
+
+hypre (2.4.0b-2) unstable; urgency=low
+
+  * Rebuild against new openmpi.
+
+ -- "Adam C. Powell, IV" <hazelsct@debian.org>  Fri, 20 Mar 2009 11:40:12 -0400
+
+hypre (2.4.0b-1) unstable; urgency=low
+
+  * New upstream release (closes: #498291, #498733).
+  * Documentation source from upstream is now in src/docs.
+  * Using quilt now to manage patches.
+  * Changed to libtool-revision style of shared library naming libXX-version.so
+    and changed shlib package name accordingly.
+  * Using mpi-default-dev instead of explicitly depending on openmpi or lam
+    (closes: #509780).
+
+ -- "Adam C. Powell, IV" <hazelsct@debian.org>  Fri, 26 Dec 2008 01:35:57 -0500
+
+hypre (2.0.0.dfsg-7) unstable; urgency=low
+
+  * Changed libhypre-dev Depends to pull in proper MPI implementation
+    using type-handling (closes: #487253).
+
+ -- "Adam C. Powell, IV" <hazelsct@debian.org>  Mon, 23 Jun 2008 15:38:19 -0400
+
+hypre (2.0.0.dfsg-6) unstable; urgency=low
+
+  * Changed -lmpi_cxx to more generic -lmpi++, and removed -lstdc++,
+    instead using BUILD_CXX_SHARED (closes: #484341, #484196).
+
+ -- "Adam C. Powell, IV" <hazelsct@debian.org>  Tue, 03 Jun 2008 23:36:05 -0400
+
+hypre (2.0.0.dfsg-5) unstable; urgency=low
+
+  * Added LAPACK to Build-Depends, corrected lib names (closes: #484341,
+    #484196).
+
+ -- "Adam C. Powell, IV" <hazelsct@debian.org>  Tue, 03 Jun 2008 19:03:39 -0400
+
+hypre (2.0.0.dfsg-4) unstable; urgency=low
+
+  * Build-Depends on BLAS instead of ATLAS, same with -dev Depends.
+
+ -- "Adam C. Powell, IV" <hazelsct@debian.org>  Tue, 27 May 2008 15:57:37 -0400
+
+hypre (2.0.0.dfsg-3) unstable; urgency=low
+
+  * Build-depends on OpenMPI where it exists, LAM otherwise.
+
+ -- "Adam C. Powell, IV" <hazelsct@debian.org>  Wed, 30 Apr 2008 15:02:25 -0400
+
+hypre (2.0.0.dfsg-2) unstable; urgency=low
+
+  * Added gfortran to Build-Depends (closes: #477744).
+
+ -- "Adam C. Powell, IV" <hazelsct@debian.org>  Mon, 28 Apr 2008 18:59:19 -0400
+
+hypre (2.0.0.dfsg-1) unstable; urgency=low
+
+  * Removed docs directory because of lack of source.
+  * New package closes same bugs as rejected hypre 2.0.0-1 (closes: #451738,
+    #447673, #349885, #436230).
+  * Updated atlas dependency to new libatlas-base-dev name.
+  * Because -dev has only headers and symlinks (no static libs), made it
+    arch all.
+
+ -- "Adam C. Powell, IV" <hazelsct@debian.org>  Wed, 16 Apr 2008 12:02:12 -0400
+
+hypre (2.0.0-1) unstable; urgency=low
+
+  * New upstream release (closes: #451738).
+  * Builds against OpenMPI (closes: #447673).
+  * libhypre2.0.0 doesn't need to conflict with and replace older versions
+    (closes: #349885).
+  * No longer builds or installs included SuperLU (closes: #436230).
+  * Only builds shared libs for now, will change this if somebody bugs me.
+  * Forward-ported shared library versioning.
+  * Forward-ported inter-lib links to satisfy dh_shlibdeps.
+  * Created a new lib to resolve HYPRE_FEI and HYPRE_mli inter-lib dependency.
+
+ -- "Adam C. Powell, IV" <hazelsct@debian.org>  Wed, 21 Nov 2007 13:21:32 -0500
+
+hypre (1.6.0-4) unstable; urgency=low
+
+  * Rebuild with new mpich and linked against libblas-3.so.
+  * Fixed configure to actually use -with-blas= value.
+  * Fixed build-depends, replacing obsolete mpich with libmpich1.0-dev and
+    adding version 3 BLAS dev.
+  * Appended c2 to shared lib package name since it includes C++ objects.
+  * Massive changes to link shared libs with all of their dependent libs.
+  * Removed HYPRE_BuildIJMatrixFromDistributedMatrix() because it uses an
+    obsolete IJ_mv API.
+  * Got rid of a bunch of @s in Makefiles to make build more transparent.
+  * Added libHYPRE_Euclid to SSTRUCT_LFLAGS in test/Makefile.in so it works.
+  * Added Makefile removal to clean target to avoid bloated .diff.gz.
+  * Added installation of lintian overrides files.
+
+ -- "Adam C. Powell, IV" <hazelsct@debian.org>  Thu,  8 Sep 2005 23:22:43 -0400
+
+hypre (1.6.0-3) unstable; urgency=low
+
+  * Commented -DBOOL_NOT_SUPPORTED erroneous flags in
+    src/FEI_mv/fei-hypre/Makefile.in (closes: #249525).
+  * Removed gcc | c-compiler from Build-Depends.
+  * Added lintian overrides for GPL false positives in copyright file.
+
+ -- "Adam C. Powell, IV" <hazelsct@debian.org>  Wed, 11 Aug 2004 22:25:09 -0400
+
+hypre (1.6.0-2) unstable; urgency=low
+
+  * Added mpich to build-depends (closes: #220591).
+
+ -- "Adam C. Powell, IV" <hazelsct@debian.org>  Thu, 13 Nov 2003 10:28:17 -0500
+
+hypre (1.6.0-1) unstable; urgency=low
+
+  * First packaging attempt (closes: #207414).
+  * Added shared library building to each Makefile.in.
+  * doc-base index for user and reference manuals.
+
+ -- "Adam C. Powell, IV" <hazelsct@debian.org>  Thu,  2 Oct 2003 14:52:22 -0400

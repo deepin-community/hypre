@@ -1,0 +1,22 @@
+--- a/src/parcsr_ls/Makefile
++++ b/src/parcsr_ls/Makefile
+@@ -5,6 +5,8 @@
+ 
+ include ../config/Makefile.config
+ 
++SYSTEM_LIBS = $(MPILIBDIRS) $(MPILIBS) $(MPIFLAGS) -lm $(DSUPERLU_LIBS) $(LAPACKLIBDIRS) $(LAPACKLIBS)
++
+ ## Euclid specific macros taken from distributed_ls/Euclid
+ 
+ CINCLUDES = ${INCLUDES} ${MPIINCLUDE}
+--- a/src/FEI_mv/femli/Makefile
++++ b/src/FEI_mv/femli/Makefile
+@@ -5,6 +5,8 @@
+ 
+ include ../../config/Makefile.config
+ 
++SYSTEM_LIBS = $(MPILIBDIRS) $(MPILIBS) $(MPIFLAGS) -lm ${SUPERLU_LIBS} ${LAPACKLIBDIRS} ${LAPACKLIBS}
++
+ CINCLUDES = ${INCLUDES} ${MPIINCLUDE}
+ 
+ MLI_INCLUDES = \

@@ -1,0 +1,54 @@
+#!/bin/bash
+
+# do not run these tests:
+#   TEST_bench, because life is too short
+#   TEST_examples, TEST_fei, executables are not available
+#   TEST_timing, the unusual shell arithmetic in efficiency.sh is not supported
+SKIP_TEST_LIST="TEST_bench TEST_examples TEST_fei TEST_timing"
+
+export OMPI_MCA_plm_rsh_agent=/bin/false
+export OMPI_MCA_rmaps_base_oversubscribe=1
+
+cd src${HYPRE_LIBNAME_EXT}/test
+sed "s|include ../config/Makefile.config|#include ../config/Makefile.config|" -i Makefile
+
+echo "Building tests for HYPRE${HYPRE_LIBNAME_EXT}"
+make clean
+rm -f TEST_*.stdout TEST_*.stderr
+make    CC=mpicc \
+	LINK_CC=mpicc \
+	CFLAGS="-I/usr/include/hypre${HYPRE_LIBNAME_EXT} -I/usr/include/superlu -I/usr/include/superlu-dist `pkg-config --cflags mpi` $CFLAGS" \
+	LDFLAGS="`pkg-config --libs mpi` -lm" \
+	HYPRE_LIB_INSTALL=/usr/lib/`dpkg-architecture -q DEB_HOST_MULTIARCH` \
+	HYPRE_LIBNAME_EXT=${HYPRE_LIBNAME_EXT}
+
+echo "Running tests for HYPRE${HYPRE_LIBNAME_EXT}"
+echo "testing began at `date`"
+set -e
+test_return="ok"
+ALL_TEST_START=$SECONDS
+for TEST in TEST_*; do
+  case " ${SKIP_TEST_LIST} " in
+  *\ ${TEST}\ *) echo "skipping ${TEST}";;
+  *) echo -n "running ${TEST} ... "
+    TEST_START=$SECONDS
+    if ./runtest.sh -t ${TEST}/*.sh >${TEST}.stdout 2>${TEST}.stderr ; then
+      echo ok
+    else
+      test_return=$?
+      echo "error found with error code ${test_return}"
+      echo "===== error logs for HYPRE${HYPRE_LIBNAME_EXT} ${TEST} ====="
+      echo "${TEST} stdout:"
+      cat ${TEST}.stdout
+      echo "${TEST} stderr:"
+      cat ${TEST}.stderr
+      echo "===== end error logs for HYPRE${HYPRE_LIBNAME_EXT} ${TEST} with error code ${test_return} ====="
+    fi
+    echo "test ${TEST} for HYPRE${HYPRE_LIBNAME_EXT} completed in $(( $SECONDS - $TEST_START )) s";;
+  esac
+done
+if [ ${test_return} != "ok" ]; then
+    echo "HYPRE${HYPRE_LIBNAME_EXT} tests failed with last error code ${test_return}"
+    return ${test_return}
+fi
+echo "all tests for  HYPRE${HYPRE_LIBNAME_EXT} completed at `date` in $(( $SECONDS - $ALL_TEST_START )) s"

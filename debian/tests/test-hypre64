@@ -1,0 +1,3 @@
+cp -r src src64
+HYPRE_LIBNAME_EXT=64 debian/tests/test-hypre-common
+rm -r src64

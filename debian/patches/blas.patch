@@ -1,0 +1,28 @@
+--- a/src/config/hypre_blas_macros.m4
++++ b/src/config/hypre_blas_macros.m4
+@@ -67,8 +67,8 @@
+ #***************************************************************
+ #   Set search paths for BLAS library
+ #***************************************************************
+-  temp_FLAGS="-L/usr/lib -L/usr/local/lib -L/lib -L/opt/intel/mkl70/lib/32"
+-  LDFLAGS="$temp_FLAGS $LDFLAGS"
++#  temp_FLAGS="-L/usr/lib -L/usr/local/lib -L/lib -L/opt/intel/mkl70/lib/32"
++#  LDFLAGS="$temp_FLAGS $LDFLAGS"
+ 
+ #***************************************************************
+ #   Check for function dgemm in BLAS_LIB_NAMES
+@@ -113,10 +113,14 @@
+ #***************************************************************
+   if test "$BLASLIBS" != "null" -a "$BLASLIBS" != "internal"; then
+      BLASLIBS="-l$BLASLIBS"
++  else
++     BLASLIBS=""
+   fi
+ 
+   if test "$BLASLIBDIRS" != "null"; then
+      BLASLIBDIRS="-L$BLASLIBDIRS"
++  else
++     BLASLIBDIRS=""
+   fi
+ 
+ #***************************************************************

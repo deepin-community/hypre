@@ -1,0 +1,12 @@
+Index: hypre/src/distributed_ls/pilut/macros.h
+===================================================================
+--- hypre.orig/src/distributed_ls/pilut/macros.h	2021-06-29 11:22:50.899091257 +0200
++++ hypre/src/distributed_ls/pilut/macros.h	2021-06-29 11:22:50.891090662 +0200
+@@ -10,6 +10,7 @@
+ 
+ #include "../../utilities/general.h"
+ #include "../../utilities/fortran.h"
++#include "../../blas/_hypre_blas.h"
+ 
+ /*
+  * macros.h

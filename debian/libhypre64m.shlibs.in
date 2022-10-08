@@ -1,0 +1,1 @@
+libHYPRE64m __HYPRE_VERSION__ libhypre64m (>= __HYPRE_VERSION__), libhypre64m (<< __HYPRE_VERSION_NEXT__)
