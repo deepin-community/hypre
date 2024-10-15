@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright 1998-2019 Lawrence Livermore National Security, LLC and other
+ * Copyright (c) 1998 Lawrence Livermore National Security, LLC and other
  * HYPRE Project Developers. See the top-level COPYRIGHT file for details.
  *
  * SPDX-License-Identifier: (Apache-2.0 OR MIT)
@@ -9,7 +9,7 @@
 #include "csr_spgemm_device.h"
 #include "seq_mv.hpp"
 
-#if defined(HYPRE_USING_CUDA) || defined(HYPRE_USING_HIP)
+#if defined(HYPRE_USING_GPU)
 
 HYPRE_Int
 hypreDevice_CSRSpGemm(hypre_CSRMatrix  *A,
@@ -45,11 +45,16 @@ hypreDevice_CSRSpGemm(hypre_CSRMatrix  *A,
    }
 
 #ifdef HYPRE_PROFILE
-   hypre_profile_times[HYPRE_TIMER_ID_SPMM] -= hypre_MPI_Wtime();
+   hypre_profile_times[HYPRE_TIMER_ID_SPGEMM] -= hypre_MPI_Wtime();
+#endif
+
+#ifdef HYPRE_SPGEMM_TIMING
+   hypre_ForceSyncComputeStream(hypre_handle());
+   HYPRE_Real ta = hypre_MPI_Wtime();
 #endif
 
    /* use CUSPARSE or rocSPARSE*/
-   if (hypre_HandleSpgemmUseCusparse(hypre_handle()))
+   if (hypre_HandleSpgemmUseVendor(hypre_handle()))
    {
 #if defined(HYPRE_USING_CUSPARSE)
       hypreDevice_CSRSpGemmCusparse(m, k, n,
@@ -61,108 +66,72 @@ hypreDevice_CSRSpGemm(hypre_CSRMatrix  *A,
                                      hypre_CSRMatrixGPUMatDescr(A), nnza, d_ia, d_ja, d_a,
                                      hypre_CSRMatrixGPUMatDescr(B), nnzb, d_ib, d_jb, d_b,
                                      hypre_CSRMatrixGPUMatDescr(C), hypre_CSRMatrixGPUMatInfo(C), &nnzC, &d_ic, &d_jc, &d_c);
+#elif defined(HYPRE_USING_ONEMKLSPARSE)
+      hypreDevice_CSRSpGemmOnemklsparse( m, k, n,
+                                         hypre_CSRMatrixGPUMatHandle(A), nnza, d_ia, d_ja, d_a,
+                                         hypre_CSRMatrixGPUMatHandle(B), nnzb, d_ib, d_jb, d_b,
+                                         hypre_CSRMatrixGPUMatHandle(C), &nnzC, &d_ic, &d_jc, &d_c);
 #else
-      hypre_error_w_msg(HYPRE_ERROR_GENERIC,"Attempting to use device sparse matrix library for SpGEMM without having compiled support for it!\n");
+      hypre_error_w_msg(HYPRE_ERROR_GENERIC,
+                        "Attempting to use device sparse matrix library for SpGEMM without having compiled support for it!\n");
 #endif
    }
    else
    {
-      HYPRE_Int m2 = hypre_HandleSpgemmNumPasses(hypre_handle()) < 3 ? m : 2*m;
-      HYPRE_Int *d_rc = hypre_TAlloc(HYPRE_Int, m2, HYPRE_MEMORY_DEVICE);
+      d_a  = hypre_CSRMatrixPatternOnly(A) ? NULL : d_a;
+      d_b  = hypre_CSRMatrixPatternOnly(B) ? NULL : d_b;
 
-      hypreDevice_CSRSpGemmRownnzEstimate(m, k, n, d_ia, d_ja, d_ib, d_jb, d_rc);
+      HYPRE_Int *d_rc = hypre_TAlloc(HYPRE_Int, m, HYPRE_MEMORY_DEVICE);
+      const HYPRE_Int alg = hypre_HandleSpgemmAlgorithm(hypre_handle());
 
-      if (hypre_HandleSpgemmNumPasses(hypre_handle()) < 3)
+      if (hypre_HandleSpgemmNumBin(hypre_handle()) == 0)
       {
-         hypreDevice_CSRSpGemmWithRownnzEstimate(m, k, n, d_ia, d_ja, d_a, d_ib, d_jb, d_b, d_rc,
-                                                 &d_ic, &d_jc, &d_c, &nnzC);
+         hypreDevice_CSRSpGemmBinnedGetBlockNumDim();
       }
-      else
+
+      if (alg == 1)
       {
+         hypreDevice_CSRSpGemmRownnz
+         (m, k, n, nnza, d_ia, d_ja, d_ib, d_jb, 0 /* without input rc */, d_rc);
+
+         hypreDevice_CSRSpGemmNumerWithRownnzUpperbound
+         (m, k, n, d_ia, d_ja, d_a, d_ib, d_jb, d_b, d_rc, 1, &d_ic, &d_jc, &d_c, &nnzC);
+      }
+      else /* if (alg == 3) */
+      {
+         const HYPRE_Int row_est_mtd = hypre_HandleSpgemmRownnzEstimateMethod(hypre_handle());
+
+         hypreDevice_CSRSpGemmRownnzEstimate(m, k, n, d_ia, d_ja, d_ib, d_jb, d_rc, row_est_mtd);
+
          HYPRE_Int rownnz_exact;
-         /* a binary array to indicate if row nnz counting is failed for a row */
-         //HYPRE_Int *d_rf = hypre_TAlloc(HYPRE_Int, m, HYPRE_MEMORY_DEVICE);
-         HYPRE_Int *d_rf = d_rc + m;
 
-         hypreDevice_CSRSpGemmRownnzUpperbound(m, k, n, d_ia, d_ja, d_ib, d_jb, d_rc, d_rf);
+         hypreDevice_CSRSpGemmRownnzUpperbound
+         (m, k, n, d_ia, d_ja, d_ib, d_jb, 1 /* with input rc */, d_rc, &rownnz_exact);
 
-         /* row nnz is exact if no row failed */
-         rownnz_exact = hypreDevice_IntegerReduceSum(m, d_rf) == 0;
-
-         //hypre_TFree(d_rf, HYPRE_MEMORY_DEVICE);
-
-         hypreDevice_CSRSpGemmWithRownnzUpperbound(m, k, n, d_ia, d_ja, d_a, d_ib, d_jb, d_b, d_rc, rownnz_exact,
-                                                   &d_ic, &d_jc, &d_c, &nnzC);
+         hypreDevice_CSRSpGemmNumerWithRownnzUpperbound
+         (m, k, n, d_ia, d_ja, d_a, d_ib, d_jb, d_b, d_rc, rownnz_exact, &d_ic, &d_jc, &d_c, &nnzC);
       }
 
       hypre_TFree(d_rc, HYPRE_MEMORY_DEVICE);
    }
 
+#ifdef HYPRE_SPGEMM_TIMING
+   hypre_ForceSyncComputeStream(hypre_handle());
+   HYPRE_Real tb = hypre_MPI_Wtime() - ta;
+   HYPRE_SPGEMM_PRINT("SpGemm time %f\n", tb);
+#endif
+
    hypre_CSRMatrixNumNonzeros(C) = nnzC;
-   hypre_CSRMatrixI(C) = d_ic;
-   hypre_CSRMatrixJ(C) = d_jc;
-   hypre_CSRMatrixData(C) = d_c;
+   hypre_CSRMatrixI(C)           = d_ic;
+   hypre_CSRMatrixJ(C)           = d_jc;
+   hypre_CSRMatrixData(C)        = d_c;
 
 #ifdef HYPRE_PROFILE
-   cudaThreadSynchronize();
-   hypre_profile_times[HYPRE_TIMER_ID_SPMM] += hypre_MPI_Wtime();
+   hypre_profile_times[HYPRE_TIMER_ID_SPGEMM] += hypre_MPI_Wtime();
 #endif
 
    return hypre_error_flag;
 }
 
-HYPRE_Int
-hypre_CSRMatrixDeviceSpGemmSetRownnzEstimateMethod( HYPRE_Int value )
-{
-   if (value == 1 || value == 2 || value == 3)
-   {
-      hypre_HandleCudaData(hypre_handle())->spgemm_rownnz_estimate_method = value;
-   }
-   else
-   {
-      return -1;
-   }
-
-   return 0;
-}
-
-HYPRE_Int
-hypre_CSRMatrixDeviceSpGemmSetRownnzEstimateNSamples( HYPRE_Int value )
-{
-   hypre_HandleCudaData(hypre_handle())->spgemm_rownnz_estimate_nsamples = value;
-
-   return 0;
-}
-
-HYPRE_Int
-hypre_CSRMatrixDeviceSpGemmSetRownnzEstimateMultFactor( HYPRE_Real value )
-{
-   if (value > 0.0)
-   {
-      hypre_HandleCudaData(hypre_handle())->spgemm_rownnz_estimate_mult_factor = value;
-   }
-   else
-   {
-      return -1;
-   }
-
-   return 0;
-}
-
-HYPRE_Int
-hypre_CSRMatrixDeviceSpGemmSetHashType( char value )
-{
-   if (value == 'L' || value == 'Q' || value == 'D')
-   {
-      hypre_HandleCudaData(hypre_handle())->spgemm_hash_type = value;
-   }
-   else
-   {
-      return -1;
-   }
-
-   return 0;
-}
-
-#endif /* HYPRE_USING_CUDA  || defined(HYPRE_USING_HIP) */
+#endif /* defined(HYPRE_USING_GPU) */
 

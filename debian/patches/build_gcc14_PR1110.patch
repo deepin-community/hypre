@@ -1,0 +1,540 @@
+From a60cbaf989ac96925c733146b44eed86cbb4fdf9 Mon Sep 17 00:00:00 2001
+From: "Victor A. P. Magri" <paludettomag1@llnl.gov>
+Date: Sat, 3 Aug 2024 19:40:47 -0400
+Subject: [PATCH] Fix compiler warnings and errors
+
+---
+ src/parcsr_block_mv/par_csr_block_interp.c | 10 +++++-----
+ src/parcsr_block_mv/par_csr_block_rap.c    |  2 +-
+ src/parcsr_ls/ams.c                        |  6 +++++-
+ src/parcsr_ls/dsuperlu.c                   |  8 ++++----
+ src/parcsr_ls/par_gsmg.c                   |  2 +-
+ src/parcsr_ls/par_ilu.c                    |  2 +-
+ src/parcsr_ls/par_ilu_solve.c              |  2 +-
+ src/parcsr_ls/par_interp.c                 |  6 +++---
+ src/parcsr_ls/par_lr_interp.c              | 12 +++++-------
+ src/parcsr_ls/par_mgr_rap.c                |  6 +++---
+ src/parcsr_ls/par_mgr_solve.c              |  4 ++--
+ src/parcsr_ls/par_multi_interp.c           |  2 +-
+ src/parcsr_ls/par_rap.c                    | 10 +++++-----
+ src/parcsr_ls/partial.c                    | 12 +++++-------
+ src/parcsr_ls/schwarz.c                    | 14 +++++++-------
+ src/parcsr_mv/par_csr_matop_marked.c       | 13 +++++++------
+ src/sstruct_ls/fac_amr_fcoarsen.c          |  1 +
+ src/sstruct_ls/fac_interp2.c               |  4 ++--
+ src/sstruct_ls/maxwell_semi_interp.c       |  5 +++++
+ src/struct_ls/sparse_msg_solve.c           |  4 ++--
+ 20 files changed, 66 insertions(+), 59 deletions(-)
+
+Index: hypre/src/parcsr_block_mv/par_csr_block_interp.c
+===================================================================
+--- hypre.orig/src/parcsr_block_mv/par_csr_block_interp.c	2024-08-04 11:11:44.234601863 +0200
++++ hypre/src/parcsr_block_mv/par_csr_block_interp.c	2024-08-04 11:11:44.218602039 +0200
+@@ -131,7 +131,7 @@
+    HYPRE_Int local_numrows = hypre_CSRBlockMatrixNumRows(A_diag);
+    HYPRE_BigInt col_n = col_1 + (HYPRE_BigInt)local_numrows;
+ 
+-   HYPRE_Real       wall_time;  /* for debugging instrumentation  */
++   HYPRE_Real       wall_time = 0.0;  /* for debugging instrumentation  */
+ 
+    HYPRE_Real       *identity_block;
+    HYPRE_Real       *zero_block;
+@@ -1700,7 +1700,7 @@
+    HYPRE_Int local_numrows = hypre_CSRBlockMatrixNumRows(A_diag);
+    HYPRE_BigInt col_n = col_1 + (HYPRE_BigInt)local_numrows;
+ 
+-   HYPRE_Real       wall_time;  /* for debugging instrumentation  */
++   HYPRE_Real       wall_time = 0.0;  /* for debugging instrumentation  */
+ 
+ 
+    HYPRE_Real       *identity_block;
+@@ -2826,7 +2826,7 @@
+    HYPRE_Int local_numrows = hypre_CSRBlockMatrixNumRows(A_diag);
+    HYPRE_BigInt col_n = col_1 + (HYPRE_BigInt)local_numrows;
+ 
+-   HYPRE_Real       wall_time;  /* for debugging instrumentation  */
++   HYPRE_Real       wall_time = 0.0;  /* for debugging instrumentation  */
+ 
+ 
+    HYPRE_Real       *identity_block;
+@@ -3884,7 +3884,7 @@
+    HYPRE_Int local_numrows = hypre_CSRBlockMatrixNumRows(A_diag);
+    HYPRE_BigInt col_n = col_1 + (HYPRE_BigInt)local_numrows;
+ 
+-   HYPRE_Real       wall_time;  /* for debugging instrumentation  */
++   HYPRE_Real       wall_time = 0.0;  /* for debugging instrumentation  */
+ 
+ 
+    HYPRE_Real       *identity_block;
+@@ -4899,7 +4899,7 @@
+    HYPRE_Int            *int_buf_data = NULL;
+    HYPRE_BigInt         *big_buf_data = NULL;
+ 
+-   HYPRE_Real       wall_time;  /* for debugging instrumentation  */
++   HYPRE_Real       wall_time = 0.0;  /* for debugging instrumentation  */
+ 
+    HYPRE_Real       *identity_block;
+    HYPRE_Real       *zero_block;
+Index: hypre/src/parcsr_block_mv/par_csr_block_rap.c
+===================================================================
+--- hypre.orig/src/parcsr_block_mv/par_csr_block_rap.c	2024-08-04 11:11:44.234601863 +0200
++++ hypre/src/parcsr_block_mv/par_csr_block_rap.c	2024-08-04 11:11:44.218602039 +0200
+@@ -234,7 +234,7 @@
+    HYPRE_Int             *RAP_int_i;
+    HYPRE_BigInt          *RAP_int_j;
+ 
+-   hypre_CSRBlockMatrix  *RAP_ext;
++   hypre_CSRBlockMatrix  *RAP_ext       = NULL;
+ 
+    HYPRE_Complex         *RAP_ext_data  = NULL;
+    HYPRE_Int             *RAP_ext_i     = NULL;
+Index: hypre/src/parcsr_ls/ams.c
+===================================================================
+--- hypre.orig/src/parcsr_ls/ams.c	2024-08-04 11:11:44.234601863 +0200
++++ hypre/src/parcsr_ls/ams.c	2024-08-04 11:11:44.222601995 +0200
+@@ -1907,7 +1907,7 @@
+ {
+    HYPRE_UNUSED_VAR(A);
+ 
+-   hypre_ParCSRMatrix *Pix, *Piy, *Piz = NULL;
++   hypre_ParCSRMatrix *Pix, *Piy = NULL, *Piz = NULL;
+ 
+ #if defined(HYPRE_USING_GPU)
+    HYPRE_ExecutionPolicy exec = hypre_GetExecPolicy1( hypre_ParCSRMatrixMemoryLocation(G) );
+@@ -2378,11 +2378,13 @@
+ #endif
+          {
+             if (G_offd_ncols)
++            {
+                for (i = 0; i < G_offd_nrows + 1; i++)
+                {
+                   Pix_offd_I[i] = G_offd_I[i];
+                   Piy_offd_I[i] = G_offd_I[i];
+                }
++            }
+ 
+             for (i = 0; i < G_offd_nnz; i++)
+             {
+@@ -2391,11 +2393,13 @@
+             }
+ 
+             for (i = 0; i < G_offd_nrows; i++)
++            {
+                for (j = G_offd_I[i]; j < G_offd_I[i + 1]; j++)
+                {
+                   *Pix_offd_data++ = hypre_abs(G_offd_data[j]) * 0.5 * Gx_data[i];
+                   *Piy_offd_data++ = hypre_abs(G_offd_data[j]) * 0.5 * Gy_data[i];
+                }
++            }
+          }
+ 
+          for (i = 0; i < G_offd_ncols; i++)
+Index: hypre/src/parcsr_ls/dsuperlu.c
+===================================================================
+--- hypre.orig/src/parcsr_ls/dsuperlu.c	2024-08-04 11:11:44.234601863 +0200
++++ hypre/src/parcsr_ls/dsuperlu.c	2024-08-04 11:11:44.222601995 +0200
+@@ -46,7 +46,6 @@
+    HYPRE_Int          pcols = 1;
+    HYPRE_Int          prows = 1;
+    hypre_DSLUData    *dslu_data = NULL;
+-   HYPRE_Int          info = 0;
+    HYPRE_Int          nrhs = 0;
+ 
+    HYPRE_Int          num_rows;
+@@ -54,6 +53,7 @@
+    HYPRE_Int          i;
+ 
+    /* SuperLU_Dist variables. Note it uses "int_t" to denote integer types */
++   int_t              slu_info = 0;
+    int_t             *slu_rowptr;
+    int_t             *slu_colidx;
+    hypre_double      *slu_data;
+@@ -185,7 +185,7 @@
+    pdgssvx(&(dslu_data->dslu_options), &(dslu_data->A_dslu),
+            &(dslu_data->dslu_ScalePermstruct), NULL, num_rows, nrhs,
+            &(dslu_data->dslu_data_grid), &(dslu_data->dslu_data_LU),
+-           &(dslu_data->dslu_solve), dslu_data->berr, &(dslu_data->dslu_data_stat), &info);
++           &(dslu_data->dslu_solve), dslu_data->berr, &(dslu_data->dslu_data_stat), &slu_info);
+ 
+    dslu_data->dslu_options.Fact = FACTORED;
+    *solver = (HYPRE_Solver) dslu_data;
+@@ -199,13 +199,13 @@
+                    hypre_ParVector *x)
+ {
+    hypre_DSLUData  *dslu_data = (hypre_DSLUData *) solver;
+-   HYPRE_Int        info = 0;
+    HYPRE_Real      *x_data;
+    hypre_ParVector *x_host = NULL;
+    HYPRE_Int        size = hypre_VectorSize(hypre_ParVectorLocalVector(x));
+    HYPRE_Int        nrhs = 1;
+    HYPRE_Int        i;
+ 
++   int_t            slu_info;
+    hypre_double    *slu_data;
+ 
+    hypre_ParVectorCopy(b, x);
+@@ -247,7 +247,7 @@
+            &(dslu_data->dslu_solve),
+            dslu_data->berr,
+            &(dslu_data->dslu_data_stat),
+-           &info);
++           &slu_info);
+ 
+    /* Free memory */
+    if ((void*) slu_data != (void*) x_data)
+Index: hypre/src/parcsr_ls/par_gsmg.c
+===================================================================
+--- hypre.orig/src/parcsr_ls/par_gsmg.c	2024-08-04 11:11:44.234601863 +0200
++++ hypre/src/parcsr_ls/par_gsmg.c	2024-08-04 11:11:44.222601995 +0200
+@@ -78,7 +78,7 @@
+    HYPRE_Int i, j, k, ii, index, start;
+    HYPRE_Int num_cols_offd;
+    HYPRE_Int num_sends;
+-   HYPRE_Int *dof_func_offd;
++   HYPRE_Int *dof_func_offd = NULL;
+    HYPRE_Int *int_buf_data;
+    HYPRE_Real temp;
+    HYPRE_Real *p;
+Index: hypre/src/parcsr_ls/par_ilu.c
+===================================================================
+--- hypre.orig/src/parcsr_ls/par_ilu.c	2024-08-04 11:11:44.234601863 +0200
++++ hypre/src/parcsr_ls/par_ilu.c	2024-08-04 11:11:44.222601995 +0200
+@@ -4432,7 +4432,7 @@
+    hypre_CSRMatrix         *M_offd;
+    HYPRE_Int               *M_offd_i;
+ 
+-   HYPRE_Real              time_s, time_e;
++   HYPRE_Real              time_s = 0.0, time_e;
+ 
+    HYPRE_Int               n = hypre_CSRMatrixNumRows(A_diag);
+    HYPRE_Int               i;
+Index: hypre/src/parcsr_ls/par_ilu_solve.c
+===================================================================
+--- hypre.orig/src/parcsr_ls/par_ilu_solve.c	2024-08-04 11:11:44.234601863 +0200
++++ hypre/src/parcsr_ls/par_ilu_solve.c	2024-08-04 11:11:44.222601995 +0200
+@@ -1380,7 +1380,7 @@
+    hypre_Vector      *rhs_local;
+    HYPRE_Real        *rhs_data;
+    hypre_Vector      *x_local = NULL;
+-   HYPRE_Real        *x_data;
++   HYPRE_Real        *x_data  = NULL;
+ 
+    /* xtemp might be null when we have no Schur complement */
+    if (xtemp)
+Index: hypre/src/parcsr_ls/par_interp.c
+===================================================================
+--- hypre.orig/src/parcsr_ls/par_interp.c	2024-08-04 11:11:44.234601863 +0200
++++ hypre/src/parcsr_ls/par_interp.c	2024-08-04 11:11:44.222601995 +0200
+@@ -123,7 +123,7 @@
+    HYPRE_Int local_numrows = hypre_CSRMatrixNumRows(A_diag);
+    HYPRE_BigInt col_n = col_1 + (HYPRE_BigInt)local_numrows;
+ 
+-   HYPRE_Real       wall_time;  /* for debugging instrumentation  */
++   HYPRE_Real       wall_time = 0.0;  /* for debugging instrumentation  */
+ 
+    hypre_MPI_Comm_size(comm, &num_procs);
+    hypre_MPI_Comm_rank(comm, &my_id);
+@@ -1090,7 +1090,7 @@
+    HYPRE_Int local_numrows = hypre_CSRMatrixNumRows(A_diag);
+    HYPRE_BigInt col_n = col_1 + local_numrows;
+ 
+-   HYPRE_Real       wall_time;  /* for debugging instrumentation  */
++   HYPRE_Real       wall_time = 0.0;  /* for debugging instrumentation  */
+ 
+    hypre_MPI_Comm_size(comm, &num_procs);
+    hypre_MPI_Comm_rank(comm, &my_id);
+@@ -2759,7 +2759,7 @@
+    HYPRE_Int local_numrows = hypre_CSRMatrixNumRows(A_diag);
+    HYPRE_BigInt col_n = col_1 + local_numrows;
+ 
+-   HYPRE_Real       wall_time;  /* for debugging instrumentation  */
++   HYPRE_Real       wall_time = 0.0;  /* for debugging instrumentation  */
+ 
+    hypre_MPI_Comm_size(comm, &num_procs);
+    hypre_MPI_Comm_rank(comm, &my_id);
+Index: hypre/src/parcsr_ls/par_lr_interp.c
+===================================================================
+--- hypre.orig/src/parcsr_ls/par_lr_interp.c	2024-08-04 11:11:44.234601863 +0200
++++ hypre/src/parcsr_ls/par_lr_interp.c	2024-08-04 11:11:44.226601952 +0200
+@@ -132,11 +132,10 @@
+    /* Definitions */
+    HYPRE_Real       zero = 0.0;
+    HYPRE_Real       one  = 1.0;
+-   HYPRE_Real       wall_time;
+-   HYPRE_Real       wall_1 = 0;
+-   HYPRE_Real       wall_2 = 0;
+-   HYPRE_Real       wall_3 = 0;
+-
++   HYPRE_Real       wall_time = 0.0;
++   HYPRE_Real       wall_1 = 0.0;
++   HYPRE_Real       wall_2 = 0.0;
++   HYPRE_Real       wall_3 = 0.0;
+ 
+    hypre_ParCSRCommPkg   *extend_comm_pkg = NULL;
+ 
+@@ -4876,8 +4875,7 @@
+    /* Definitions */
+    HYPRE_Real       zero = 0.0;
+    HYPRE_Real       one  = 1.0;
+-   HYPRE_Real       wall_time;
+-
++   HYPRE_Real       wall_time = 0.0;
+ 
+    hypre_ParCSRCommPkg   *extend_comm_pkg = NULL;
+ 
+Index: hypre/src/parcsr_ls/par_mgr_solve.c
+===================================================================
+--- hypre.orig/src/parcsr_ls/par_mgr_solve.c	2024-08-04 11:11:44.234601863 +0200
++++ hypre/src/parcsr_ls/par_mgr_solve.c	2024-08-04 11:11:44.226601952 +0200
+@@ -885,8 +885,8 @@
+             //                                    F_array[fine_grid], Vtemp);
+             //  convergence_factor_frelax = hypre_ParVectorInnerProd(Vtemp, Vtemp);
+ 
+-            HYPRE_Real resnorm, init_resnorm;
+-            HYPRE_Real rhs_norm, old_resnorm;
++            HYPRE_Real resnorm = 0.0, init_resnorm;
++            HYPRE_Real rhs_norm = 0.0, old_resnorm;
+             HYPRE_Real rel_resnorm = fp_one;
+             HYPRE_Real conv_factor = fp_one;
+             if (frelax_print_level > 1)
+Index: hypre/src/parcsr_ls/par_multi_interp.c
+===================================================================
+--- hypre.orig/src/parcsr_ls/par_multi_interp.c	2024-08-04 11:11:44.234601863 +0200
++++ hypre/src/parcsr_ls/par_multi_interp.c	2024-08-04 11:11:44.226601952 +0200
+@@ -79,7 +79,7 @@
+    HYPRE_Int       *int_buf_data = NULL;
+    HYPRE_BigInt    *big_buf_data = NULL;
+    HYPRE_Int       *send_map_start = NULL;
+-   HYPRE_Int       *send_map_elmt;
++   HYPRE_Int       *send_map_elmt = NULL;
+    HYPRE_Int       *send_procs = NULL;
+    HYPRE_Int        num_recvs = 0;
+    HYPRE_Int       *recv_vec_start = NULL;
+Index: hypre/src/parcsr_ls/par_rap.c
+===================================================================
+--- hypre.orig/src/parcsr_ls/par_rap.c	2024-08-04 11:11:44.234601863 +0200
++++ hypre/src/parcsr_ls/par_rap.c	2024-08-04 11:11:44.226601952 +0200
+@@ -93,7 +93,7 @@
+    HYPRE_Int             *RAP_int_i;
+    HYPRE_BigInt          *RAP_int_j;
+ 
+-   hypre_CSRMatrix       *RAP_ext;
++   hypre_CSRMatrix       *RAP_ext = NULL;
+    HYPRE_Complex         *RAP_ext_data = NULL;
+    HYPRE_Int             *RAP_ext_i = NULL;
+    HYPRE_BigInt          *RAP_ext_j = NULL;
+@@ -123,10 +123,10 @@
+    HYPRE_Int             *R_diag_i;
+    HYPRE_Int             *R_diag_j;
+ 
+-   hypre_CSRMatrix       *R_offd;
+-   HYPRE_Complex         *R_offd_data;
+-   HYPRE_Int             *R_offd_i;
+-   HYPRE_Int             *R_offd_j;
++   hypre_CSRMatrix       *R_offd = NULL;
++   HYPRE_Complex         *R_offd_data = NULL;
++   HYPRE_Int             *R_offd_i = NULL;
++   HYPRE_Int             *R_offd_j = NULL;
+ 
+    HYPRE_Real            *RA_diag_data_array = NULL;
+    HYPRE_Int             *RA_diag_j_array = NULL;
+Index: hypre/src/parcsr_ls/partial.c
+===================================================================
+--- hypre.orig/src/parcsr_ls/partial.c	2024-08-04 11:11:44.234601863 +0200
++++ hypre/src/parcsr_ls/partial.c	2024-08-04 11:11:44.226601952 +0200
+@@ -994,11 +994,10 @@
+    /* Definitions */
+    HYPRE_Real       zero = 0.0;
+    HYPRE_Real       one  = 1.0;
+-   HYPRE_Real       wall_time;
+-   HYPRE_Real       wall_1 = 0;
+-   HYPRE_Real       wall_2 = 0;
+-   HYPRE_Real       wall_3 = 0;
+-
++   HYPRE_Real       wall_time = 0.0;
++   HYPRE_Real       wall_1 = 0.0;
++   HYPRE_Real       wall_2 = 0.0;
++   HYPRE_Real       wall_3 = 0.0;
+ 
+    hypre_ParCSRCommPkg   *extend_comm_pkg = NULL;
+ 
+@@ -2003,8 +2002,7 @@
+    /* Definitions */
+    HYPRE_Real       zero = 0.0;
+    HYPRE_Real       one  = 1.0;
+-   HYPRE_Real       wall_time;
+-
++   HYPRE_Real       wall_time = 0.0;
+ 
+    hypre_ParCSRCommPkg   *extend_comm_pkg = NULL;
+ 
+Index: hypre/src/parcsr_ls/schwarz.c
+===================================================================
+--- hypre.orig/src/parcsr_ls/schwarz.c	2024-08-04 11:11:44.234601863 +0200
++++ hypre/src/parcsr_ls/schwarz.c	2024-08-04 11:11:44.226601952 +0200
+@@ -398,7 +398,7 @@
+    HYPRE_Real *rhs_ext = NULL;
+    HYPRE_Real *vtemp_data;
+    HYPRE_Real *aux;
+-   HYPRE_Real *buf_data;
++   HYPRE_Real *buf_data = NULL;
+    /*hypre_Vector *x_vector;*/
+    MPI_Comm comm = hypre_ParCSRMatrixComm(par_A);
+    HYPRE_Int num_domains = hypre_CSRMatrixNumRows(domain_structure);
+@@ -742,7 +742,7 @@
+ 
+    if (comm_pkg)
+    {
+-      comm_handle = hypre_ParCSRCommHandleCreate (2, comm_pkg, x_ext, buf_data);
++      comm_handle = hypre_ParCSRCommHandleCreate(2, comm_pkg, x_ext, buf_data);
+ 
+       hypre_ParCSRCommHandleDestroy(comm_handle);
+       comm_handle = NULL;
+@@ -3064,7 +3064,7 @@
+    HYPRE_Int num_variables;
+    HYPRE_Int num_cols_offd;
+    HYPRE_Real *scale_ext = NULL;
+-   HYPRE_Real *buf_data;
++   HYPRE_Real *buf_data = NULL;
+    HYPRE_Int index;
+ 
+    HYPRE_Int piv_counter = 0;
+@@ -3195,7 +3195,7 @@
+ 
+    if (comm_pkg)
+    {
+-      comm_handle = hypre_ParCSRCommHandleCreate (2, comm_pkg, x_ext_data, buf_data);
++      comm_handle = hypre_ParCSRCommHandleCreate(2, comm_pkg, x_ext_data, buf_data);
+ 
+       hypre_ParCSRCommHandleDestroy(comm_handle);
+       comm_handle = NULL;
+@@ -3825,8 +3825,8 @@
+ 
+    hypre_ParCSRCommPkg *comm_pkg = hypre_ParCSRMatrixCommPkg(A);
+    HYPRE_Int    num_sends = 0;
+-   HYPRE_Int   *send_map_starts;
+-   HYPRE_Int   *send_map_elmts;
++   HYPRE_Int   *send_map_starts = NULL;
++   HYPRE_Int   *send_map_elmts = NULL;
+ 
+    HYPRE_Int    num_variables = hypre_ParCSRMatrixNumRows(A);
+    HYPRE_Int    num_cols_offd = hypre_CSRMatrixNumCols(hypre_ParCSRMatrixOffd(A));
+@@ -3862,7 +3862,7 @@
+ 
+    if (comm_pkg)
+    {
+-      scale_int = hypre_CTAlloc(HYPRE_Real,  send_map_starts[num_sends], HYPRE_MEMORY_HOST);
++      scale_int = hypre_CTAlloc(HYPRE_Real, send_map_starts[num_sends], HYPRE_MEMORY_HOST);
+       comm_handle = hypre_ParCSRCommHandleCreate (2, comm_pkg, scale_ext, scale_int);
+ 
+       hypre_ParCSRCommHandleDestroy(comm_handle);
+Index: hypre/src/parcsr_mv/par_csr_matop_marked.c
+===================================================================
+--- hypre.orig/src/parcsr_mv/par_csr_matop_marked.c	2024-08-04 11:11:44.234601863 +0200
++++ hypre/src/parcsr_mv/par_csr_matop_marked.c	2024-08-04 11:11:44.226601952 +0200
+@@ -460,11 +460,7 @@
+       }
+    }
+ 
+-   if (num_cols_offd_C)
+-   {
+-      col_map_offd_C = hypre_CTAlloc(HYPRE_BigInt, num_cols_offd_C, HYPRE_MEMORY_HOST);
+-   }
+-
++   col_map_offd_C = hypre_CTAlloc(HYPRE_BigInt, num_cols_offd_C, HYPRE_MEMORY_HOST);
+    for (i = 0; i < num_cols_offd_C; i++)
+    {
+       col_map_offd_C[i] = temp[i];
+@@ -475,21 +471,26 @@
+       hypre_TFree(temp, HYPRE_MEMORY_HOST);
+    }
+ 
+-   for (i = 0 ; i < P_ext_offd_size; i++)
++   for (i = 0; i < P_ext_offd_size; i++)
++   {
+       P_ext_offd_j[i] = hypre_BigBinarySearch(col_map_offd_C,
+                                               Ps_ext_j[i],
+                                               num_cols_offd_C);
++   }
++
+    if (num_cols_offd_P)
+    {
+       map_P_to_C = hypre_CTAlloc(HYPRE_Int, num_cols_offd_P, HYPRE_MEMORY_HOST);
+ 
+       cnt = 0;
+       for (i = 0; i < num_cols_offd_C; i++)
++      {
+          if (col_map_offd_C[i] == col_map_offd_P[cnt])
+          {
+             map_P_to_C[cnt++] = i;
+             if (cnt == num_cols_offd_P) { break; }
+          }
++      }
+    }
+ 
+    if (num_procs > 1) { hypre_CSRMatrixDestroy(Ps_ext); }
+Index: hypre/src/sstruct_ls/fac_amr_fcoarsen.c
+===================================================================
+--- hypre.orig/src/sstruct_ls/fac_amr_fcoarsen.c	2024-08-04 11:11:44.234601863 +0200
++++ hypre/src/sstruct_ls/fac_amr_fcoarsen.c	2024-08-04 11:11:44.226601952 +0200
+@@ -205,6 +205,7 @@
+    hypre_BoxInit(&intersect_box, ndim);
+    hypre_BoxInit(&loop_box, ndim);
+    hypre_BoxInit(&coarse_cell_box, ndim);
++   hypre_SetIndex3(lindex, 0, 0, 0);
+ 
+    /*--------------------------------------------------------------------------
+     * Task: Coarsen the fbox and f/c connections to form the coarse grid
+Index: hypre/src/sstruct_ls/fac_interp2.c
+===================================================================
+--- hypre.orig/src/sstruct_ls/fac_interp2.c	2024-08-04 11:11:44.234601863 +0200
++++ hypre/src/sstruct_ls/fac_interp2.c	2024-08-04 11:11:44.230601907 +0200
+@@ -760,8 +760,8 @@
+    HYPRE_Int               part_fine = 1;
+ 
+    HYPRE_Real              xweight1, xweight2;
+-   HYPRE_Real              yweight1, yweight2 = 0.0;
+-   HYPRE_Real              zweight1, zweight2 = 0.0;
++   HYPRE_Real              yweight1 = 0.0, yweight2 = 0.0;
++   HYPRE_Real              zweight1 = 0.0, zweight2 = 0.0;
+ 
+    /*-----------------------------------------------------------------------
+     * Initialize some things
+Index: hypre/src/sstruct_ls/maxwell_semi_interp.c
+===================================================================
+--- hypre.orig/src/sstruct_ls/maxwell_semi_interp.c	2024-08-04 11:11:44.234601863 +0200
++++ hypre/src/sstruct_ls/maxwell_semi_interp.c	2024-08-04 11:11:44.230601907 +0200
+@@ -1605,6 +1605,11 @@
+                m = rfactor[2];
+                break;
+             }
++
++            default:
++            {
++               m = 0;
++            }
+          }
+ 
+          for (i = nEdges; i < nEdges + j; i++) /*fill in the column size for Edge */
+Index: hypre/src/struct_ls/sparse_msg_solve.c
+===================================================================
+--- hypre.orig/src/struct_ls/sparse_msg_solve.c	2024-08-04 11:11:44.234601863 +0200
++++ hypre/src/struct_ls/sparse_msg_solve.c	2024-08-04 11:11:44.230601907 +0200
+@@ -68,7 +68,7 @@
+ 
+    HYPRE_Int            *restrict_count;
+ 
+-   HYPRE_Real            b_dot_b, r_dot_r, eps;
++   HYPRE_Real            b_dot_b = 0.0, r_dot_r, eps = 0.0;
+    HYPRE_Real            e_dot_e = 1.0, x_dot_x = 1.0;
+ 
+    HYPRE_Int             i, l, lx, ly, lz;
+@@ -164,7 +164,7 @@
+          if (logging > 0)
+          {
+             norms[i] = hypre_sqrt(r_dot_r);
+-            if (b_dot_b > 0)
++            if (b_dot_b > 0.0)
+             {
+                rel_norms[i] = hypre_sqrt(r_dot_r / b_dot_b);
+             }

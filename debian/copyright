@@ -4,7 +4,7 @@ Source: http://www.llnl.gov/casc/hypre/
 
 Files: *
 Copyright: 1998-2019 Lawrence Livermore National Security, LLC
-	   and other HYPRE Project Developers
+           and other HYPRE Project Developers
 License: Apache-2.0-OR-MIT
  HYPRE is licensed under the Apache License, Version 2.0 (see
  LICENSE-APACHE or http://www.apache.org/licenses/LICENSE-2.0) or the

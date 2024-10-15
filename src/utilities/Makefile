@@ -1,4 +1,4 @@
-# Copyright 1998-2019 Lawrence Livermore National Security, LLC and other
+# Copyright (c) 1998 Lawrence Livermore National Security, LLC and other
 # HYPRE Project Developers. See the top-level COPYRIGHT file for details.
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
@@ -24,11 +24,15 @@ HEADERS =\
  fortran.h\
  fortran_matrix.h\
  general.h\
+ int_array.h\
  memory.h\
+ memory_tracker.h\
  HYPRE_utilities.h\
  mpistubs.h\
  threading.h\
  timing.h\
+ magma.h\
+ _hypre_onedpl.hpp\
  _hypre_utilities.h\
  _hypre_utilities.hpp
 
@@ -45,8 +49,13 @@ FILES =\
  log.c\
  complex.c\
  error.c\
+ int_array.c\
  hopscotch_hash.c\
+ matrix_stats.c\
+ magma.c\
+ memory_tracker.c\
  merge_sort.c\
+ mmio.c\
  mpi_comm_f2c.c\
  prefix_sum.c\
  printf.c\
@@ -55,16 +64,18 @@ FILES =\
  mpistubs.c\
  qsplit.c\
  random.c\
+ state.c\
  threading.c\
  timer.c\
  timing.c
 
 CUFILES=\
- cuda_utils.c\
+ device_utils.c\
  general.c\
  handle.c\
+ int_array_device.c\
  memory.c\
- omp_device.c \
+ omp_device.c\
  nvtx.c
 
 COBJS = ${FILES:.c=.o}
@@ -79,6 +90,7 @@ SONAME = libHYPRE_utilities-${HYPRE_RELEASE_VERSION}${HYPRE_LIB_SUFFIX}
 
 all: libHYPRE_utilities${HYPRE_LIB_SUFFIX}
 	cp -fR $(srcdir)/HYPRE_*.h $(HYPRE_BUILD_DIR)/include
+	cp -fR $(srcdir)/_hypre_onedpl.hpp $(HYPRE_BUILD_DIR)/include
 	cp -fR $(srcdir)/_hypre_utilities.h $(HYPRE_BUILD_DIR)/include
 	cp -fR $(srcdir)/_hypre_utilities.hpp $(HYPRE_BUILD_DIR)/include
 	cp -fR $(srcdir)/fortran*.h $(HYPRE_BUILD_DIR)/include
@@ -102,12 +114,12 @@ distclean: clean
 
 libHYPRE_utilities.a: ${OBJS}
 	@echo  "Building $@ ... "
-	${AR} $@ *.o
+	${AR} $@ ${OBJS}
 	${RANLIB} $@
 
 libHYPRE_utilities.so libHYPRE_utilities.dylib: ${OBJS}
 	@echo  "Building $@ ... "
 	${BUILD_CC_SHARED} -o ${SONAME} ${OBJS} ${SHARED_SET_SONAME}${SONAME}
-	ln -s ${SONAME} $@
+	ln -s -f ${SONAME} $@
 
 ${OBJS}: ${HEADERS}

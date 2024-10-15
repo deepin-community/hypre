@@ -1,4 +1,4 @@
-# Copyright 1998-2019 Lawrence Livermore National Security, LLC and other
+# Copyright (c) 1998 Lawrence Livermore National Security, LLC and other
 # HYPRE Project Developers. See the top-level COPYRIGHT file for details.
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
@@ -24,6 +24,12 @@ function(add_hypre_executables EXE_SRCS)
       # If CUDA is enabled, tag source files to be compiled with nvcc.
       set_source_files_properties(${SRC_FILENAME} PROPERTIES LANGUAGE CUDA)
     endif (HYPRE_USING_CUDA)
+
+    if (HYPRE_USING_SYCL)
+      # If SYCL is enabled, tag source files to be compiled with dpcpp.
+      set_source_files_properties(${SRC_FILENAME} PROPERTIES LANGUAGE CXX)
+    endif (HYPRE_USING_SYCL)
+
 
     string(REPLACE ".c" "" EXE_NAME ${SRC_FILENAME})
     # Actually add the exe

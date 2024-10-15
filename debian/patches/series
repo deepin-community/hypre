@@ -1,8 +1,7 @@
-pilut_blas_mangle.patch
 configure.patch
 blas.patch
 complex.patch
-test.patch
 lapack.patch
 superlu_libs.patch
 library_name_extension.patch
+build_gcc14_PR1110.patch
