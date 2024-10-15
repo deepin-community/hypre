@@ -1,4 +1,4 @@
-# Copyright 1998-2019 Lawrence Livermore National Security, LLC and other
+# Copyright (c) 1998 Lawrence Livermore National Security, LLC and other
 # HYPRE Project Developers. See the top-level COPYRIGHT file for details.
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
@@ -14,6 +14,7 @@ C_COMPILE_FLAGS = \
  -I$(srcdir)/../utilities\
  -I$(srcdir)/../multivector\
  -I$(srcdir)/../seq_mv\
+ -I$(srcdir)/../seq_block_mv\
  -I$(srcdir)/../parcsr_mv\
  -I$(srcdir)/../parcsr_ls\
  -I$(srcdir)/../IJ_mv\
@@ -60,33 +61,33 @@ SONAME = libHYPRE_parcsr_block_mv-${HYPRE_RELEASE_VERSION}${HYPRE_LIB_SUFFIX}
 ##################################################################
 
 all: libHYPRE_parcsr_block_mv${HYPRE_LIB_SUFFIX}
-	cp -fR $(srcdir)/par_csr_block_matrix.h $(HYPRE_BUILD_DIR)/include	
+	cp -fR $(srcdir)/par_csr_block_matrix.h $(HYPRE_BUILD_DIR)/include
 	cp -fR $(srcdir)/csr_block_matrix.h $(HYPRE_BUILD_DIR)/include
 #	cp -fR libHYPRE_* $(HYPRE_BUILD_DIR)/lib/.
 
 driver: driver.o libHYPRE_parcsr_block_mv${HYPRE_LIB_SUFFIX}
 	@echo  "Linking" $@ "... "
-	${CC} -o driver driver.o ${LFLAGS} 
+	${CC} -o driver driver.o ${LFLAGS}
 
 driver_matvec: driver_matvec.o
 	@echo  "Linking" $@ "... "
-	${CC} -o driver_matvec driver_matvec.o ${LFLAGS} 
+	${CC} -o driver_matvec driver_matvec.o ${LFLAGS}
 
 driver_matmul: driver_matmul.o libHYPRE_parcsr_mv${HYPRE_LIB_SUFFIX}
 	@echo  "Linking" $@ "... "
-	${CC} -o driver_matmul driver_matmul.o ${LFLAGS} 
+	${CC} -o driver_matmul driver_matmul.o ${LFLAGS}
 
 driver_boolmatmul: driver_boolmatmul.o libHYPRE_parcsr_mv${HYPRE_LIB_SUFFIX}
 	@echo  "Linking" $@ "... "
-	${CC} -o driver_boolmatmul driver_boolmatmul.o ${LFLAGS} 
+	${CC} -o driver_boolmatmul driver_boolmatmul.o ${LFLAGS}
 
 driver_aat: driver_aat.o libHYPRE_parcsr_mv${HYPRE_LIB_SUFFIX}
 	@echo  "Linking" $@ "... "
-	${CC} -o driver_aat driver_aat.o ${LFLAGS} 
+	${CC} -o driver_aat driver_aat.o ${LFLAGS}
 
 driver_boolaat: driver_boolaat.o libHYPRE_parcsr_mv${HYPRE_LIB_SUFFIX}
 	@echo  "Linking" $@ "... "
-	${CC} -o driver_boolaat driver_boolaat.o ${LFLAGS} 
+	${CC} -o driver_boolaat driver_boolaat.o ${LFLAGS}
 
 install: libHYPRE_parcsr_block_mv${HYPRE_LIB_SUFFIX}
 	cp -fR $(srcdir)/par_csr_block_matrix.h $(HYPRE_INC_INSTALL)/.
@@ -111,9 +112,8 @@ libHYPRE_parcsr_block_mv.a: ${OBJS}
 libHYPRE_parcsr_block_mv.so libHYPRE_parcsr_block_mv.dylib: ${OBJS}
 	@echo  "Building $@ ... "
 	${BUILD_CC_SHARED} -o ${SONAME} ${OBJS} ${SHARED_SET_SONAME}${SONAME}
-	ln -s ${SONAME} $@
+	ln -s -f ${SONAME} $@
 
 ${OBJS}: ${HEADERS}
 
 ${DRIVER_OBJS}: ${HEADERS}
-

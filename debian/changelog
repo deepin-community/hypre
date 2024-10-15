@@ -1,3 +1,273 @@
+hypre (2.31.0-2) unstable; urgency=medium
+
+  * Upload to unstable. Transition #1082552.
+
+ -- Drew Parsons <dparsons@debian.org>  Sun, 06 Oct 2024 10:38:58 +0200
+
+hypre (2.31.0-1exp2) experimental; urgency=medium
+
+  * debian patch build_gcc14_PR1110.patch applies upstream PR#1110 to
+    enable build using gcc-14. Closes: #1075077.
+
+ -- Drew Parsons <dparsons@debian.org>  Sun, 04 Aug 2024 11:17:02 +0200
+
+hypre (2.31.0-1exp1) experimental; urgency=medium
+
+  * New upstream release. New ABI 2.31.0.
+    - applies debian patches fix_make_check.patch,
+      no_timings_finalizeAllTimings.patch
+    - obsoletes debian patch test.patch (scripts now use bash)
+  * add Drew Parsons as uploader
+
+ -- Drew Parsons <dparsons@debian.org>  Sat, 20 Jul 2024 14:00:52 +0200
+
+hypre (2.29.0-2) unstable; urgency=medium
+
+  * Team upload.
+  * Build-Depends: pkgconf not pkg-config
+  * Standards-Version: 4.7.0
+
+ -- Drew Parsons <dparsons@debian.org>  Wed, 15 May 2024 15:02:30 +0200
+
+hypre (2.29.0-1exp1) experimental; urgency=medium
+
+  * Team upload.
+  * New upstream release
+    - new ABI 2.29.0
+
+ -- Drew Parsons <dparsons@debian.org>  Thu, 29 Jun 2023 16:32:53 +0200
+
+hypre (2.28.0-8) unstable; urgency=medium
+
+  * Team upload.
+  * debian/rules: add loong64 to list of arches needing a relaxed
+    test tolerance for build-time tests. Closes: #1058461.
+  * after dh_clean remove src*-static copies of the src dir.
+    Closes: #1046864
+
+ -- Drew Parsons <dparsons@debian.org>  Mon, 18 Dec 2023 17:01:24 +0100
+
+hypre (2.28.0-7) unstable; urgency=medium
+
+  * Team upload.
+  * run build-time tests (make check) on ppc64el, only skip checkpar.
+    Likewise with hurd-i386.
+  * relax checkpar tolerance on riscv64. Closes: #1050225
+  * report number of available processors (nproc) when running tests
+    (hanging tests is more likely when oversubscribing)
+
+ -- Drew Parsons <dparsons@debian.org>  Tue, 29 Aug 2023 10:26:33 +0200
+
+hypre (2.28.0-6) unstable; urgency=medium
+
+  * Team upload.
+  * skip build tests on ppc64el, which consistently times out
+    (possibly due to pmix mishandling MPI finalisation,
+    see upstream Issue #955)
+  * skip build tests on ia64, which fails to build the tests
+
+ -- Drew Parsons <dparsons@debian.org>  Tue, 08 Aug 2023 11:33:24 +0200
+
+hypre (2.28.0-5) unstable; urgency=medium
+
+  * Team upload.
+  * update debian patch fix_make_check.patch to allow checkpar
+    tolerance to be relaxed. Relax tolerance to 1e-3, only on
+    arches which didn't meet the default tolerance 1e-6:
+    arm64 i386 ppc64el s390x hppa powerpc ppc64
+    Handled via new makefile variable HYPRE_CHECKPAR_TOL.
+
+ -- Drew Parsons <dparsons@debian.org>  Mon, 07 Aug 2023 16:48:26 +0200
+
+hypre (2.28.0-4) unstable; urgency=medium
+
+  * Team upload.
+  * debian patch fix_make_check.patch: print contents of error file if
+    failure detected in checktest.sh.
+
+ -- Drew Parsons <dparsons@debian.org>  Mon, 07 Aug 2023 11:43:51 +0200
+
+hypre (2.28.0-3) unstable; urgency=medium
+
+  * Team upload.
+  * hypre tests have been generally flaky, occasionally timing out
+    (and always timing out on ppc64el, armel, ia64). Following upstream
+    advice (Issue#955), run tests via `make check`, `make checkpar`,
+    which runs a more controlled subset of all available tests.
+    - reinstate build-time tests on armel, ia64
+  * debian/tests: use make check same as build-time tests
+    but do not run checkpar (takes a different number of iterations
+    which as treated as an error)
+    - reinstate debian CI tests on armhf
+  * debian patch fix_make_check.patch fixes the `make check` rules
+    - use set -e to not ignore test failures
+    - checkpar uses -atol not -tol
+    - return error code from checktest.sh
+
+ -- Drew Parsons <dparsons@debian.org>  Mon, 07 Aug 2023 02:49:37 +0200
+
+hypre (2.28.0-2) unstable; urgency=medium
+
+  * Team upload.
+  * push HYPRE 2.28.0 to unstable. Transition #1042005.
+
+ -- Drew Parsons <dparsons@debian.org>  Sat, 05 Aug 2023 17:29:43 +0200
+
+hypre (2.28.0-1exp1) experimental; urgency=medium
+
+  * Team upload.
+  * New upstream release.
+  * drop deprecated debian patch pilut_blas_mangle.patch. External
+    BLAS handling fixed in PR#36 (commit a16e7b3 for PETSc 2.18).
+    See also commit 5afacfc in PR#827.
+  * debian/tests: launch runtest.sh explicitly via bash to avoid
+    problems from hashbang #!/bin/sh (script uses function keyword)
+    See https://github.com/hypre-space/hypre/issues/881
+
+ -- Drew Parsons <dparsons@debian.org>  Sun, 16 Apr 2023 18:20:50 +0200
+
+hypre (2.27.0-1exp1) experimental; urgency=medium
+
+  * Team upload.
+  * New upstream release.
+
+ -- Drew Parsons <dparsons@debian.org>  Sat, 31 Dec 2022 11:05:53 +0100
+
+hypre (2.26.0-3) unstable; urgency=medium
+
+  * Team upload.
+  * debian/tests: armhf has been placed in the black list
+    (Architecture: !armhf) for occasionally failing debci tests.
+    Closes: #1026912.
+  * Standards-Version: 4.6.2
+
+ -- Drew Parsons <dparsons@debian.org>  Tue, 27 Dec 2022 21:46:13 +0100
+
+hypre (2.26.0-2) unstable; urgency=medium
+
+  * Team upload.
+
+  [ Debian Janitor ]
+  * Trim trailing whitespace.
+  * debian/copyright: use spaces rather than tabs to start continuation lines.
+  * Use secure URI in Homepage field.
+  * Set upstream metadata fields: Bug-Database, Bug-Submit, Repository-Browse.
+  * Drop unnecessary dependency on dh-autoreconf.
+
+ -- Drew Parsons <dparsons@debian.org>  Sun, 04 Dec 2022 23:28:34 +0100
+
+hypre (2.26.0-1exp1) experimental; urgency=medium
+
+  [ Drew Parsons ]
+  * Team upload.
+  * New upstream release (new ABI 2.26.0)
+
+  [ Debian Janitor ]
+  * Trim trailing whitespace.
+  * debian/copyright: use spaces rather than tabs to start continuation lines.
+  * Use secure URI in Homepage field.
+  * Set upstream metadata fields: Bug-Database, Bug-Submit, Repository-Browse.
+  * Drop unnecessary dependency on dh-autoreconf.
+
+ -- Drew Parsons <dparsons@debian.org>  Sat, 29 Oct 2022 19:27:53 +0200
+
+hypre (2.25.0-2) unstable; urgency=medium
+
+  * Team upload.
+  * Upload Hypre 2.25 to unstable (transition #1016084)
+
+ -- Drew Parsons <dparsons@debian.org>  Thu, 01 Sep 2022 01:06:59 +0200
+
+hypre (2.25.0-1exp1) experimental; urgency=medium
+
+  * Team upload.
+  * New upstream release (new ABI 2.25.0)
+  * debian patch no_timings_finalizeAllTimings.patch adds
+    hypre_FinalizeAllTimings() to the dummy list in timing.h when
+    HYPRE_TIMING is not defined (which is default).
+    Was missed in upstream PR#519.
+  * debian/tests: skip TEST_ij in 64m tests
+    Not entirely stable, sometimes hangs.
+  * Standards-Version: 4.6.1
+
+ -- Drew Parsons <dparsons@debian.org>  Tue, 21 Jun 2022 00:15:45 +0200
+
+hypre (2.24.0-1exp1) experimental; urgency=medium
+
+  * Team upload.
+  * New upstream release (new ABI).
+
+ -- Drew Parsons <dparsons@debian.org>  Sat, 12 Mar 2022 14:00:51 +0100
+
+hypre (2.23.0-3) unstable; urgency=medium
+
+  * Team upload
+  * Drop non-existent test dependencies that regress the autopkgtests
+
+ -- Graham Inggs <ginggs@debian.org>  Tue, 24 May 2022 07:39:50 +0000
+
+hypre (2.23.0-2) unstable; urgency=medium
+
+  * Team upload.
+  * upload hypre 2.23 to unstable (transition #100664)
+
+ -- Drew Parsons <dparsons@debian.org>  Sun, 06 Mar 2022 14:01:33 +0100
+
+hypre (2.23.0-1exp2) experimental; urgency=medium
+
+  * Team upload.
+  * patch test Makefile to recognize .obj object files
+
+ -- Drew Parsons <dparsons@debian.org>  Mon, 21 Feb 2022 03:34:27 +0100
+
+hypre (2.23.0-1exp1) experimental; urgency=medium
+
+  * Team upload.
+  * New upstream release (new ABI).
+  * refresh debian/watch
+
+ -- Drew Parsons <dparsons@debian.org>  Sat, 04 Dec 2021 14:44:18 +0100
+
+hypre (2.22.1-7) unstable; urgency=medium
+
+  * Team upload.
+  * debian/tests: skip TEST_superlu on armhf (consistently times out).
+    Closes: #1003020.
+
+ -- Drew Parsons <dparsons@debian.org>  Sat, 19 Feb 2022 12:32:26 +0100
+
+hypre (2.22.1-6) unstable; urgency=medium
+
+  * Team upload.
+  * debian/tests: depend on libhypre64 only for 64-bit tests
+
+ -- Drew Parsons <dparsons@debian.org>  Mon, 14 Feb 2022 02:39:06 +0100
+
+hypre (2.22.1-5) unstable; urgency=medium
+
+  * Team upload.
+  * refresh debian/watch
+  * enable 64-bit build on kfreebsd-amd64 (libblas64-dev is available)
+
+ -- Drew Parsons <dparsons@debian.org>  Sat, 12 Feb 2022 21:32:03 +0100
+
+hypre (2.22.1-4) unstable; urgency=medium
+
+  * Team upload.
+  * reinstate versioned library packages
+    libhypre-2.22.1, libhypre64-2.22.1, libhypre64m-2.22.1
+    in line with standard shared library Policy 8.1.
+    Version restriction by shlibs file was making petsc3.14
+    uninstallable alongside petsc3.15, interfering with deal.ii
+    installation. ABI stability is not provided by HYPRE, so a new
+    shared library package will be needed for each upstream patch
+    release. Closes: #998411.
+  * Provides,Conflicts,Replaces unversioned libhypre[64] (2.22.1)
+  * drop custom shlibs files
+  * provide static .a libraries in libhypre*-dev packages
+
+ -- Drew Parsons <dparsons@debian.org>  Fri, 05 Nov 2021 09:53:43 +0100
+
 hypre (2.22.1-3) unstable; urgency=medium
 
   * Team upload.
@@ -305,7 +575,7 @@ hypre (2.13.0-1exp1) experimental; urgency=medium
     - regression: breaks build of distributed_ls/pilut. Fixed with
       debian patch pilut_blas_mangle.patch to use external BLAS.
   * libhypre-dev depends on optimised OpenBLAS or ATLAS to provide
-    blas and lapack, where available. 
+    blas and lapack, where available.
 
  -- Drew Parsons <dparsons@debian.org>  Fri, 24 Nov 2017 13:52:43 +0800
 

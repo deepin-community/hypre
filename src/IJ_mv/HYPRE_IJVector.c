@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright 1998-2019 Lawrence Livermore National Security, LLC and other
+ * Copyright (c) 1998 Lawrence Livermore National Security, LLC and other
  * HYPRE Project Developers. See the top-level COPYRIGHT file for details.
  *
  * SPDX-License-Identifier: (Apache-2.0 OR MIT)
@@ -40,7 +40,7 @@ HYPRE_IJVectorCreate( MPI_Comm        comm,
    hypre_MPI_Comm_size(comm, &num_procs);
    hypre_MPI_Comm_rank(comm, &my_id);
 
-   if (jlower > jupper+1 || jlower < 0)
+   if (jlower > jupper + 1 || jlower < 0)
    {
       hypre_error_in_arg(2);
       hypre_TFree(vec, HYPRE_MEMORY_HOST);
@@ -56,31 +56,88 @@ HYPRE_IJVectorCreate( MPI_Comm        comm,
       as the global first row index */
 
    /* proc 0 has the first row  */
-   if (my_id==0)
+   if (my_id == 0)
    {
       row0 = jlower;
    }
    hypre_MPI_Bcast(&row0, 1, HYPRE_MPI_BIG_INT, 0, comm);
    /* proc (num_procs-1) has the last row  */
-   if (my_id == (num_procs-1))
+   if (my_id == (num_procs - 1))
    {
       rowN = jupper;
    }
-   hypre_MPI_Bcast(&rowN, 1, HYPRE_MPI_BIG_INT, num_procs-1, comm);
+   hypre_MPI_Bcast(&rowN, 1, HYPRE_MPI_BIG_INT, num_procs - 1, comm);
 
    hypre_IJVectorGlobalFirstRow(vec) = row0;
    hypre_IJVectorGlobalNumRows(vec) = rowN - row0 + 1;
 
    hypre_IJVectorComm(vec)            = comm;
+   hypre_IJVectorNumComponents(vec)   = 1;
    hypre_IJVectorObjectType(vec)      = HYPRE_UNITIALIZED;
    hypre_IJVectorObject(vec)          = NULL;
    hypre_IJVectorTranslator(vec)      = NULL;
    hypre_IJVectorAssumedPart(vec)     = NULL;
    hypre_IJVectorPrintLevel(vec)      = 0;
    hypre_IJVectorPartitioning(vec)[0] = jlower;
-   hypre_IJVectorPartitioning(vec)[1] = jupper+1;
+   hypre_IJVectorPartitioning(vec)[1] = jupper + 1;
 
    *vector = (HYPRE_IJVector) vec;
+
+   return hypre_error_flag;
+}
+
+/*--------------------------------------------------------------------------
+ * HYPRE_IJVectorSetNumComponents
+ *--------------------------------------------------------------------------*/
+
+HYPRE_Int
+HYPRE_IJVectorSetNumComponents( HYPRE_IJVector vector,
+                                HYPRE_Int      num_components )
+{
+   hypre_IJVector *vec = (hypre_IJVector *) vector;
+
+   if (!vec)
+   {
+      hypre_error_in_arg(1);
+      return hypre_error_flag;
+   }
+
+   if (num_components < 0)
+   {
+      hypre_error_in_arg(2);
+      return hypre_error_flag;
+   }
+
+   hypre_IJVectorNumComponents(vector) = num_components;
+
+   return hypre_error_flag;
+}
+
+/*--------------------------------------------------------------------------
+ * HYPRE_IJVectorSetComponent
+ *--------------------------------------------------------------------------*/
+
+HYPRE_Int
+HYPRE_IJVectorSetComponent( HYPRE_IJVector vector,
+                            HYPRE_Int      component )
+{
+   hypre_IJVector *vec = (hypre_IJVector *) vector;
+
+   if (!vec)
+   {
+      hypre_error_in_arg(1);
+      return hypre_error_flag;
+   }
+
+   if (hypre_IJVectorObjectType(vec) == HYPRE_PARCSR)
+   {
+      hypre_IJVectorSetComponentPar(vector, component);
+   }
+   else
+   {
+      hypre_error_in_arg(1);
+      return hypre_error_flag;
+   }
 
    return hypre_error_flag;
 }
@@ -201,10 +258,10 @@ HYPRE_IJVectorSetPrintLevel( HYPRE_IJVector vector,
       return hypre_error_flag;
    }
 
-   hypre_IJVectorPrintLevel(ijvector) = 1;
+   hypre_IJVectorPrintLevel(ijvector) = (print_level > 0) ? print_level : 0;
+
    return hypre_error_flag;
 }
-
 
 /*--------------------------------------------------------------------------
  * HYPRE_IJVectorSetValues
@@ -218,7 +275,7 @@ HYPRE_IJVectorSetValues( HYPRE_IJVector        vector,
 {
    hypre_IJVector *vec = (hypre_IJVector *) vector;
 
-   if (nvalues == 0) return hypre_error_flag;
+   if (nvalues == 0) { return hypre_error_flag; }
 
    if (!vec)
    {
@@ -240,7 +297,7 @@ HYPRE_IJVectorSetValues( HYPRE_IJVector        vector,
 
    if ( hypre_IJVectorObjectType(vec) == HYPRE_PARCSR )
    {
-#if defined(HYPRE_USING_CUDA) || defined(HYPRE_USING_HIP)
+#if defined(HYPRE_USING_GPU)
       HYPRE_ExecutionPolicy exec = hypre_GetExecPolicy1( hypre_IJVectorMemoryLocation(vector) );
 
       if (exec == HYPRE_EXEC_DEVICE)
@@ -250,7 +307,7 @@ HYPRE_IJVectorSetValues( HYPRE_IJVector        vector,
       else
 #endif
       {
-         return( hypre_IJVectorSetValuesPar(vec, nvalues, indices, values) );
+         return ( hypre_IJVectorSetValuesPar(vec, nvalues, indices, values) );
       }
    }
    else
@@ -273,7 +330,7 @@ HYPRE_IJVectorAddToValues( HYPRE_IJVector        vector,
 {
    hypre_IJVector *vec = (hypre_IJVector *) vector;
 
-   if (nvalues == 0) return hypre_error_flag;
+   if (nvalues == 0) { return hypre_error_flag; }
 
    if (!vec)
    {
@@ -295,7 +352,7 @@ HYPRE_IJVectorAddToValues( HYPRE_IJVector        vector,
 
    if ( hypre_IJVectorObjectType(vec) == HYPRE_PARCSR )
    {
-#if defined(HYPRE_USING_CUDA) || defined(HYPRE_USING_HIP)
+#if defined(HYPRE_USING_GPU)
       HYPRE_ExecutionPolicy exec = hypre_GetExecPolicy1( hypre_IJVectorMemoryLocation(vector) );
 
       if (exec == HYPRE_EXEC_DEVICE)
@@ -333,17 +390,80 @@ HYPRE_IJVectorAssemble( HYPRE_IJVector vector )
 
    if ( hypre_IJVectorObjectType(vec) == HYPRE_PARCSR )
    {
-#if defined(HYPRE_USING_CUDA) || defined(HYPRE_USING_HIP)
+#if defined(HYPRE_USING_GPU)
       HYPRE_ExecutionPolicy exec = hypre_GetExecPolicy1( hypre_IJVectorMemoryLocation(vector) );
 
       if (exec == HYPRE_EXEC_DEVICE)
       {
-         return( hypre_IJVectorAssembleParDevice(vec) );
+         return ( hypre_IJVectorAssembleParDevice(vec) );
       }
       else
 #endif
       {
-         return( hypre_IJVectorAssemblePar(vec) );
+         return ( hypre_IJVectorAssemblePar(vec) );
+      }
+   }
+   else
+   {
+      hypre_error_in_arg(1);
+   }
+
+   return hypre_error_flag;
+}
+
+/*--------------------------------------------------------------------------
+ * HYPRE_IJVectorUpdateValues
+ *--------------------------------------------------------------------------*/
+
+HYPRE_Int
+HYPRE_IJVectorUpdateValues( HYPRE_IJVector        vector,
+                            HYPRE_Int             nvalues,
+                            const HYPRE_BigInt   *indices,
+                            const HYPRE_Complex  *values,
+                            HYPRE_Int             action )
+{
+   hypre_IJVector *vec = (hypre_IJVector *) vector;
+
+   if (nvalues == 0) { return hypre_error_flag; }
+
+   if (!vec)
+   {
+      hypre_error_in_arg(1);
+      return hypre_error_flag;
+   }
+
+   if (nvalues < 0)
+   {
+      hypre_error_in_arg(2);
+      return hypre_error_flag;
+   }
+
+   if (!values)
+   {
+      hypre_error_in_arg(4);
+      return hypre_error_flag;
+   }
+
+   if ( hypre_IJVectorObjectType(vec) == HYPRE_PARCSR )
+   {
+#if defined(HYPRE_USING_GPU)
+      HYPRE_ExecutionPolicy exec = hypre_GetExecPolicy1( hypre_IJVectorMemoryLocation(vector) );
+
+      if (exec == HYPRE_EXEC_DEVICE)
+      {
+         return ( hypre_IJVectorUpdateValuesDevice(vec, nvalues, indices, values, action) );
+      }
+      else
+#endif
+      {
+         if (action == 1)
+         {
+            return ( hypre_IJVectorSetValuesPar(vec, nvalues, indices, values) );
+         }
+         else
+         {
+            return ( hypre_IJVectorAddToValuesPar(vec, nvalues, indices, values) );
+         }
       }
    }
    else
@@ -366,7 +486,7 @@ HYPRE_IJVectorGetValues( HYPRE_IJVector      vector,
 {
    hypre_IJVector *vec = (hypre_IJVector *) vector;
 
-   if (nvalues == 0) return hypre_error_flag;
+   if (nvalues == 0) { return hypre_error_flag; }
 
    if (!vec)
    {
@@ -388,7 +508,7 @@ HYPRE_IJVectorGetValues( HYPRE_IJVector      vector,
 
    if ( hypre_IJVectorObjectType(vec) == HYPRE_PARCSR )
    {
-      return( hypre_IJVectorGetValuesPar(vec, nvalues, indices, values) );
+      return ( hypre_IJVectorGetValuesPar(vec, nvalues, indices, values) );
    }
    else
    {
@@ -416,7 +536,7 @@ HYPRE_IJVectorSetMaxOffProcElmts( HYPRE_IJVector vector,
 
    if ( hypre_IJVectorObjectType(vec) == HYPRE_PARCSR )
    {
-      return( hypre_IJVectorSetMaxOffProcElmtsPar(vec, max_off_proc_elmts));
+      return ( hypre_IJVectorSetMaxOffProcElmtsPar(vec, max_off_proc_elmts));
    }
    else
    {
@@ -486,7 +606,7 @@ HYPRE_IJVectorGetLocalRange( HYPRE_IJVector  vector,
    }
 
    *jlower = hypre_IJVectorPartitioning(vec)[0];
-   *jupper = hypre_IJVectorPartitioning(vec)[1]-1;
+   *jupper = hypre_IJVectorPartitioning(vec)[1] - 1;
 
    return hypre_error_flag;
 }
@@ -532,7 +652,7 @@ HYPRE_IJVectorRead( const char     *filename,
 
    hypre_MPI_Comm_rank(comm, &myid);
 
-   hypre_sprintf(new_filename,"%s.%05d", filename, myid);
+   hypre_sprintf(new_filename, "%s.%05d", filename, myid);
 
    if ((file = fopen(new_filename, "r")) == NULL)
    {
@@ -578,6 +698,19 @@ HYPRE_IJVectorRead( const char     *filename,
 }
 
 /*--------------------------------------------------------------------------
+ * HYPRE_IJVectorReadBinary
+ *--------------------------------------------------------------------------*/
+
+HYPRE_Int
+HYPRE_IJVectorReadBinary( const char     *filename,
+                          MPI_Comm        comm,
+                          HYPRE_Int       type,
+                          HYPRE_IJVector *vector_ptr )
+{
+   return hypre_IJVectorReadBinary(comm, filename, type, vector_ptr);
+}
+
+/*--------------------------------------------------------------------------
  * HYPRE_IJVectorPrint
  *--------------------------------------------------------------------------*/
 
@@ -602,7 +735,7 @@ HYPRE_IJVectorPrint( HYPRE_IJVector  vector,
    comm = hypre_IJVectorComm(vector);
    hypre_MPI_Comm_rank(comm, &myid);
 
-   hypre_sprintf(new_filename,"%s.%05d", filename, myid);
+   hypre_sprintf(new_filename, "%s.%05d", filename, myid);
 
    if ((file = fopen(new_filename, "w")) == NULL)
    {
@@ -636,13 +769,87 @@ HYPRE_IJVectorPrint( HYPRE_IJVector  vector,
 
    for (j = jlower; j <= jupper; j++)
    {
-      hypre_fprintf(file, "%b %.14e\n", j, values[j-jlower]);
+      hypre_fprintf(file, "%b %.14e\n", j, values[j - jlower]);
    }
 
    hypre_TFree(d_values, memory_location);
    hypre_TFree(h_values, HYPRE_MEMORY_HOST);
 
    fclose(file);
+
+   return hypre_error_flag;
+}
+
+/*--------------------------------------------------------------------------
+ * HYPRE_IJVectorPrintBinary
+ *--------------------------------------------------------------------------*/
+
+HYPRE_Int
+HYPRE_IJVectorPrintBinary( HYPRE_IJVector  vector,
+                           const char     *filename )
+{
+   if (!vector)
+   {
+      hypre_error_in_arg(1);
+      return hypre_error_flag;
+   }
+
+   if (hypre_IJVectorObjectType(vector) == HYPRE_PARCSR)
+   {
+      hypre_ParVectorPrintBinaryIJ((hypre_ParVector*) hypre_IJVectorObject(vector),
+                                   filename);
+   }
+   else
+   {
+      hypre_error_in_arg(1);
+      return hypre_error_flag;
+   }
+
+   return hypre_error_flag;
+}
+
+/*--------------------------------------------------------------------------
+ * HYPRE_IJVectorInnerProd
+ *--------------------------------------------------------------------------*/
+
+HYPRE_Int
+HYPRE_IJVectorInnerProd( HYPRE_IJVector  x,
+                         HYPRE_IJVector  y,
+                         HYPRE_Real     *prod )
+{
+   hypre_IJVector *xvec = (hypre_IJVector *) x;
+   hypre_IJVector *yvec = (hypre_IJVector *) y;
+
+   if (!xvec)
+   {
+      hypre_error_in_arg(1);
+      return hypre_error_flag;
+   }
+
+   if (!yvec)
+   {
+      hypre_error_in_arg(2);
+      return hypre_error_flag;
+   }
+
+   if (hypre_IJVectorObjectType(xvec) != hypre_IJVectorObjectType(yvec))
+   {
+      hypre_error_w_msg(HYPRE_ERROR_GENERIC, "Input vectors don't have the same object type!");
+      return hypre_error_flag;
+   }
+
+   if (hypre_IJVectorObjectType(xvec) == HYPRE_PARCSR)
+   {
+      hypre_ParVector *par_x = (hypre_ParVector*) hypre_IJVectorObject(xvec);
+      hypre_ParVector *par_y = (hypre_ParVector*) hypre_IJVectorObject(yvec);
+
+      HYPRE_ParVectorInnerProd(par_x, par_y, prod);
+   }
+   else
+   {
+      hypre_error_in_arg(1);
+      return hypre_error_flag;
+   }
 
    return hypre_error_flag;
 }

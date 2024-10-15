@@ -25,9 +25,9 @@ Last-Update: <YYYY-MM-DD>
 
 Index: hypre/src/config/configure.in
 ===================================================================
---- hypre.orig/src/config/configure.in	2021-05-29 12:31:51.345907308 +0200
-+++ hypre/src/config/configure.in	2021-05-29 12:31:51.341907288 +0200
-@@ -2371,6 +2371,12 @@
+--- hypre.orig/src/config/configure.in	2024-07-20 12:32:25.151751807 +0200
++++ hypre/src/config/configure.in	2024-07-20 12:32:25.143751724 +0200
+@@ -2876,6 +2876,12 @@
  HYPRE_LIBINSTALL="${libdir}"
  HYPRE_INCINSTALL="${includedir}/hypre"
  

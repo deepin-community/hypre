@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright 1998-2019 Lawrence Livermore National Security, LLC and other
+ * Copyright (c) 1998 Lawrence Livermore National Security, LLC and other
  * HYPRE Project Developers. See the top-level COPYRIGHT file for details.
  *
  * SPDX-License-Identifier: (Apache-2.0 OR MIT)
@@ -27,7 +27,7 @@ HYPRE_IJMatrixCreate( MPI_Comm        comm,
                       HYPRE_BigInt    jupper,
                       HYPRE_IJMatrix *matrix )
 {
-   HYPRE_BigInt *info;
+   HYPRE_BigInt info[2];
    HYPRE_Int num_procs;
    HYPRE_Int myid;
 
@@ -35,7 +35,7 @@ HYPRE_IJMatrixCreate( MPI_Comm        comm,
 
    HYPRE_BigInt  row0, col0, rowN, colN;
 
-   ijmatrix = hypre_CTAlloc(hypre_IJMatrix,  1, HYPRE_MEMORY_HOST);
+   ijmatrix = hypre_CTAlloc(hypre_IJMatrix, 1, HYPRE_MEMORY_HOST);
 
    hypre_IJMatrixComm(ijmatrix)           = comm;
    hypre_IJMatrixObject(ijmatrix)         = NULL;
@@ -46,11 +46,11 @@ HYPRE_IJMatrixCreate( MPI_Comm        comm,
    hypre_IJMatrixPrintLevel(ijmatrix)     = 0;
    hypre_IJMatrixOMPFlag(ijmatrix)        = 0;
 
-   hypre_MPI_Comm_size(comm,&num_procs);
+   hypre_MPI_Comm_size(comm, &num_procs);
    hypre_MPI_Comm_rank(comm, &myid);
 
 
-   if (ilower > iupper+1 || ilower < 0)
+   if (ilower > iupper + 1 || ilower < 0)
    {
       hypre_error_in_arg(2);
       hypre_TFree(ijmatrix, HYPRE_MEMORY_HOST);
@@ -64,7 +64,7 @@ HYPRE_IJMatrixCreate( MPI_Comm        comm,
       return hypre_error_flag;
    }
 
-   if (jlower > jupper+1 || jlower < 0)
+   if (jlower > jupper + 1 || jlower < 0)
    {
       hypre_error_in_arg(4);
       hypre_TFree(ijmatrix, HYPRE_MEMORY_HOST);
@@ -78,12 +78,10 @@ HYPRE_IJMatrixCreate( MPI_Comm        comm,
       return hypre_error_flag;
    }
 
-   info = hypre_CTAlloc(HYPRE_BigInt, 2, HYPRE_MEMORY_HOST);
-
    hypre_IJMatrixRowPartitioning(ijmatrix)[0] = ilower;
-   hypre_IJMatrixRowPartitioning(ijmatrix)[1] = iupper+1;
+   hypre_IJMatrixRowPartitioning(ijmatrix)[1] = iupper + 1;
    hypre_IJMatrixColPartitioning(ijmatrix)[0] = jlower;
-   hypre_IJMatrixColPartitioning(ijmatrix)[1] = jupper+1;
+   hypre_IJMatrixColPartitioning(ijmatrix)[1] = jupper + 1;
 
    /* now we need the global number of rows and columns as well
       as the global first row and column index */
@@ -99,12 +97,12 @@ HYPRE_IJMatrixCreate( MPI_Comm        comm,
    col0 = info[1];
 
    /* proc (num_procs-1) has the last row and col */
-   if (myid == (num_procs-1))
+   if (myid == (num_procs - 1))
    {
       info[0] = iupper;
       info[1] = jupper;
    }
-   hypre_MPI_Bcast(info, 2, HYPRE_MPI_BIG_INT, num_procs-1, comm);
+   hypre_MPI_Bcast(info, 2, HYPRE_MPI_BIG_INT, num_procs - 1, comm);
 
    rowN = info[0];
    colN = info[1];
@@ -113,8 +111,6 @@ HYPRE_IJMatrixCreate( MPI_Comm        comm,
    hypre_IJMatrixGlobalFirstCol(ijmatrix) = col0;
    hypre_IJMatrixGlobalNumRows(ijmatrix) = rowN - row0 + 1;
    hypre_IJMatrixGlobalNumCols(ijmatrix) = colN - col0 + 1;
-
-   hypre_TFree(info, HYPRE_MEMORY_HOST);
 
    *matrix = (HYPRE_IJMatrix) ijmatrix;
 
@@ -205,7 +201,6 @@ HYPRE_IJMatrixInitialize_v2( HYPRE_IJMatrix matrix, HYPRE_MemoryLocation memory_
    }
 
    return hypre_error_flag;
-
 }
 
 /*--------------------------------------------------------------------------
@@ -223,7 +218,8 @@ HYPRE_IJMatrixSetPrintLevel( HYPRE_IJMatrix matrix,
       return hypre_error_flag;
    }
 
-   hypre_IJMatrixPrintLevel(ijmatrix) = 1;
+   hypre_IJMatrixPrintLevel(ijmatrix) = (print_level > 0) ? print_level : 0;
+
    return hypre_error_flag;
 }
 
@@ -246,42 +242,44 @@ hypre_PrefixSumInt(HYPRE_Int   nvals,
    if (nvals < nthreads || bsize == 1)
    {
       sums[0] = 0;
-      for (j=1; j < nvals; j++)
-         sums[j] += sums[j-1] + vals[j-1];
+      for (j = 1; j < nvals; j++)
+      {
+         sums[j] += sums[j - 1] + vals[j - 1];
+      }
    }
    else
    {
 
       /* Compute preliminary partial sums (in parallel) within each interval */
 #ifdef HYPRE_USING_OPENMP
-#pragma omp parallel for private(j) HYPRE_SMP_SCHEDULE
+      #pragma omp parallel for private(j) HYPRE_SMP_SCHEDULE
 #endif
       for (j = 0; j < nvals; j += bsize)
       {
-         HYPRE_Int  i, n = hypre_min((j+bsize), nvals);
+         HYPRE_Int  i, n = hypre_min((j + bsize), nvals);
 
-         sums[0] = 0;
-         for (i = j+1; i < n; i++)
+         sums[j] = 0;
+         for (i = j + 1; i < n; i++)
          {
-            sums[i] = sums[i-1] + vals[i-1];
+            sums[i] = sums[i - 1] + vals[i - 1];
          }
       }
 
       /* Compute final partial sums (in serial) for the first entry of every interval */
       for (j = bsize; j < nvals; j += bsize)
       {
-         sums[j] = sums[j-bsize] + sums[j-1] + vals[j-1];
+         sums[j] = sums[j - bsize] + sums[j - 1] + vals[j - 1];
       }
 
       /* Compute final partial sums (in parallel) for the remaining entries */
 #ifdef HYPRE_USING_OPENMP
-#pragma omp parallel for private(j) HYPRE_SMP_SCHEDULE
+      #pragma omp parallel for private(j) HYPRE_SMP_SCHEDULE
 #endif
       for (j = bsize; j < nvals; j += bsize)
       {
-         HYPRE_Int  i, n = hypre_min((j+bsize), nvals);
+         HYPRE_Int  i, n = hypre_min((j + bsize), nvals);
 
-         for (i = j+1; i < n; i++)
+         for (i = j + 1; i < n; i++)
          {
             sums[i] += sums[j];
          }
@@ -415,12 +413,13 @@ HYPRE_IJMatrixSetValues2( HYPRE_IJMatrix       matrix,
       return hypre_error_flag;
    }
 
-#if defined(HYPRE_USING_CUDA) || defined(HYPRE_USING_HIP)
+#if defined(HYPRE_USING_GPU)
    HYPRE_ExecutionPolicy exec = hypre_GetExecPolicy1( hypre_IJMatrixMemoryLocation(matrix) );
 
    if (exec == HYPRE_EXEC_DEVICE)
    {
-      hypre_IJMatrixSetAddValuesParCSRDevice(ijmatrix, nrows, ncols, rows, row_indexes, cols, values, "set");
+      hypre_IJMatrixSetAddValuesParCSRDevice(ijmatrix, nrows, ncols, rows, row_indexes, cols, values,
+                                             "set");
    }
    else
 #endif
@@ -482,7 +481,7 @@ HYPRE_IJMatrixSetConstantValues( HYPRE_IJMatrix matrix, HYPRE_Complex value)
 
    if ( hypre_IJMatrixObjectType(ijmatrix) == HYPRE_PARCSR )
    {
-      return( hypre_IJMatrixSetConstantValuesParCSR( ijmatrix, value));
+      return ( hypre_IJMatrixSetConstantValuesParCSR( ijmatrix, value));
    }
    else
    {
@@ -622,12 +621,13 @@ HYPRE_IJMatrixAddToValues2( HYPRE_IJMatrix       matrix,
       return hypre_error_flag;
    }
 
-#if defined(HYPRE_USING_CUDA) || defined(HYPRE_USING_HIP)
+#if defined(HYPRE_USING_GPU)
    HYPRE_ExecutionPolicy exec = hypre_GetExecPolicy1( hypre_IJMatrixMemoryLocation(matrix) );
 
    if (exec == HYPRE_EXEC_DEVICE)
    {
-      hypre_IJMatrixSetAddValuesParCSRDevice(ijmatrix, nrows, ncols, rows, row_indexes, cols, values, "add");
+      hypre_IJMatrixSetAddValuesParCSRDevice(ijmatrix, nrows, ncols, rows, row_indexes, cols, values,
+                                             "add");
    }
    else
 #endif
@@ -690,17 +690,17 @@ HYPRE_IJMatrixAssemble( HYPRE_IJMatrix matrix )
 
    if ( hypre_IJMatrixObjectType(ijmatrix) == HYPRE_PARCSR )
    {
-#if defined(HYPRE_USING_CUDA) || defined(HYPRE_USING_HIP)
+#if defined(HYPRE_USING_GPU)
       HYPRE_ExecutionPolicy exec = hypre_GetExecPolicy1( hypre_IJMatrixMemoryLocation(matrix) );
 
       if (exec == HYPRE_EXEC_DEVICE)
       {
-         return( hypre_IJMatrixAssembleParCSRDevice( ijmatrix ) );
+         return ( hypre_IJMatrixAssembleParCSRDevice( ijmatrix ) );
       }
       else
 #endif
       {
-         return( hypre_IJMatrixAssembleParCSR( ijmatrix ) );
+         return ( hypre_IJMatrixAssembleParCSR( ijmatrix ) );
       }
    }
    else
@@ -888,9 +888,9 @@ HYPRE_IJMatrixGetLocalRange( HYPRE_IJMatrix  matrix,
    col_partitioning = hypre_IJMatrixColPartitioning(ijmatrix);
 
    *ilower = row_partitioning[0];
-   *iupper = row_partitioning[1]-1;
+   *iupper = row_partitioning[1] - 1;
    *jlower = col_partitioning[0];
-   *jupper = col_partitioning[1]-1;
+   *jupper = col_partitioning[1] - 1;
 
    return hypre_error_flag;
 }
@@ -942,7 +942,7 @@ HYPRE_IJMatrixSetRowSizes( HYPRE_IJMatrix   matrix,
 
    if ( hypre_IJMatrixObjectType(ijmatrix) == HYPRE_PARCSR )
    {
-      return( hypre_IJMatrixSetRowSizesParCSR( ijmatrix , sizes ) );
+      return ( hypre_IJMatrixSetRowSizesParCSR( ijmatrix, sizes ) );
    }
    else
    {
@@ -998,8 +998,8 @@ HYPRE_IJMatrixSetMaxOffProcElmts( HYPRE_IJMatrix matrix,
 
    if ( hypre_IJMatrixObjectType(ijmatrix) == HYPRE_PARCSR )
    {
-      return( hypre_IJMatrixSetMaxOffProcElmtsParCSR(ijmatrix,
-                                                     max_off_proc_elmts) );
+      return ( hypre_IJMatrixSetMaxOffProcElmtsParCSR(ijmatrix,
+                                                      max_off_proc_elmts) );
    }
    else
    {
@@ -1011,7 +1011,8 @@ HYPRE_IJMatrixSetMaxOffProcElmts( HYPRE_IJMatrix matrix,
 
 /*--------------------------------------------------------------------------
  * HYPRE_IJMatrixRead
- * create IJMatrix on host memory
+ *
+ * Reads data from file in ASCII format and creates an IJMatrix on host memory
  *--------------------------------------------------------------------------*/
 
 HYPRE_Int
@@ -1020,57 +1021,43 @@ HYPRE_IJMatrixRead( const char     *filename,
                     HYPRE_Int       type,
                     HYPRE_IJMatrix *matrix_ptr )
 {
-   HYPRE_IJMatrix  matrix;
-   HYPRE_BigInt    ilower, iupper, jlower, jupper;
-   HYPRE_BigInt    I, J;
-   HYPRE_Int       ncols;
-   HYPRE_Complex   value;
-   HYPRE_Int       myid, ret;
-   char            new_filename[255];
-   FILE           *file;
+   hypre_IJMatrixRead(filename, comm, type, matrix_ptr, 0);
 
-   hypre_MPI_Comm_rank(comm, &myid);
+   return hypre_error_flag;
+}
 
-   hypre_sprintf(new_filename,"%s.%05d", filename, myid);
+/*--------------------------------------------------------------------------
+ * HYPRE_IJMatrixReadBinary
+ *
+ * Reads data from file in binary format and creates an IJMatrix
+ * on host memory.
+ *--------------------------------------------------------------------------*/
 
-   if ((file = fopen(new_filename, "r")) == NULL)
-   {
-      hypre_error_in_arg(1);
-      return hypre_error_flag;
-   }
+HYPRE_Int
+HYPRE_IJMatrixReadBinary( const char     *filename,
+                          MPI_Comm        comm,
+                          HYPRE_Int       type,
+                          HYPRE_IJMatrix *matrix_ptr )
+{
+   hypre_IJMatrixReadBinary(filename, comm, type, matrix_ptr);
 
-   hypre_fscanf(file, "%b %b %b %b", &ilower, &iupper, &jlower, &jupper);
-   HYPRE_IJMatrixCreate(comm, ilower, iupper, jlower, jupper, &matrix);
+   return hypre_error_flag;
+}
 
-   HYPRE_IJMatrixSetObjectType(matrix, type);
+/*--------------------------------------------------------------------------
+ * HYPRE_IJMatrixReadMM
+ *
+ * Reads matrix-market data from file in ASCII format and creates an
+ * IJMatrix on host memory.
+ *--------------------------------------------------------------------------*/
 
-   HYPRE_IJMatrixInitialize_v2(matrix, HYPRE_MEMORY_HOST);
-
-   /* It is important to ensure that whitespace follows the index value to help
-    * catch mistakes in the input file.  See comments in IJVectorRead(). */
-   ncols = 1;
-   while ( (ret = hypre_fscanf(file, "%b %b%*[ \t]%le", &I, &J, &value)) != EOF )
-   {
-      if (ret != 3)
-      {
-         hypre_error_w_msg(HYPRE_ERROR_GENERIC, "Error in IJ matrix input file.");
-         return hypre_error_flag;
-      }
-      if (I < ilower || I > iupper)
-      {
-         HYPRE_IJMatrixAddToValues(matrix, 1, &ncols, &I, &J, &value);
-      }
-      else
-      {
-         HYPRE_IJMatrixSetValues(matrix, 1, &ncols, &I, &J, &value);
-      }
-   }
-
-   HYPRE_IJMatrixAssemble(matrix);
-
-   fclose(file);
-
-   *matrix_ptr = matrix;
+HYPRE_Int
+HYPRE_IJMatrixReadMM( const char     *filename,
+                      MPI_Comm        comm,
+                      HYPRE_Int       type,
+                      HYPRE_IJMatrix *matrix_ptr )
+{
+   hypre_IJMatrixRead(filename, comm, type, matrix_ptr, 1);
 
    return hypre_error_flag;
 }
@@ -1097,20 +1084,37 @@ HYPRE_IJMatrixPrint( HYPRE_IJMatrix  matrix,
 
    void *object;
    HYPRE_IJMatrixGetObject(matrix, &object);
-   HYPRE_ParCSRMatrix par_csr = (HYPRE_ParCSRMatrix) object;
+   hypre_ParCSRMatrix *par_csr = (hypre_ParCSRMatrix*) object;
 
-   HYPRE_MemoryLocation memory_location = hypre_IJMatrixMemoryLocation(matrix);
+   hypre_ParCSRMatrixPrintIJ(par_csr, 0, 0, filename);
 
-   if ( hypre_GetActualMemLocation(memory_location) == hypre_MEMORY_HOST )
+   return hypre_error_flag;
+}
+
+/*--------------------------------------------------------------------------
+ * HYPRE_IJMatrixPrintBinary
+ *--------------------------------------------------------------------------*/
+
+HYPRE_Int
+HYPRE_IJMatrixPrintBinary( HYPRE_IJMatrix  matrix,
+                           const char     *filename )
+{
+   void    *object;
+
+   if (!matrix)
    {
-      hypre_ParCSRMatrixPrintIJ(par_csr, 0, 0, filename);
+      hypre_error_in_arg(1);
+      return hypre_error_flag;
    }
-   else
+
+   if ( (hypre_IJMatrixObjectType(matrix) != HYPRE_PARCSR) )
    {
-      HYPRE_ParCSRMatrix par_csr2 = hypre_ParCSRMatrixClone_v2(par_csr, 1, HYPRE_MEMORY_HOST);
-      hypre_ParCSRMatrixPrintIJ(par_csr2, 0, 0, filename);
-      hypre_ParCSRMatrixDestroy(par_csr2);
+      hypre_error_in_arg(1);
+      return hypre_error_flag;
    }
+
+   HYPRE_IJMatrixGetObject(matrix, &object);
+   hypre_ParCSRMatrixPrintBinaryIJ((hypre_ParCSRMatrix*) object, 0, 0, filename);
 
    return hypre_error_flag;
 }

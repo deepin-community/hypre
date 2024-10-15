@@ -1,7 +1,7 @@
 Index: hypre/src/config/configure.in
 ===================================================================
---- hypre.orig/src/config/configure.in	2021-05-29 18:37:49.147000455 +0200
-+++ hypre/src/config/configure.in	2021-05-29 18:37:49.139000192 +0200
+--- hypre.orig/src/config/configure.in	2024-07-20 12:19:05.010995317 +0200
++++ hypre/src/config/configure.in	2024-07-20 12:19:05.002995221 +0200
 @@ -72,7 +72,7 @@
  
  dnl * Change default prefix from /usr/local to ./hypre
@@ -11,7 +11,7 @@ Index: hypre/src/config/configure.in
  
  dnl *********************************************************************
  dnl * Initialize some variables
-@@ -194,19 +194,18 @@
+@@ -240,19 +240,18 @@
  dnl *********************************************************************
  dnl * Determine BUILD, HOST, and TARGET types
  dnl *********************************************************************
@@ -36,7 +36,7 @@ Index: hypre/src/config/configure.in
  fi
  
  dnl *********************************************************************
-@@ -2370,7 +2369,7 @@
+@@ -2875,7 +2874,7 @@
  dnl *********************************************************************
  HYPRE_INSTALLDIR="${prefix}"
  HYPRE_LIBINSTALL="${libdir}"
@@ -45,13 +45,3 @@ Index: hypre/src/config/configure.in
  
  dnl *********************************************************************
  dnl * Define machine architecture
-Index: hypre/src/config/update.sh
-===================================================================
---- hypre.orig/src/config/update.sh	2021-05-29 12:19:31.936505065 +0200
-+++ hypre/src/config/update.sh	2021-05-29 18:38:15.755863705 +0200
-@@ -1,4 +1,4 @@
--#!/bin/sh
-+#!/bin/bash
- # Copyright 1998-2019 Lawrence Livermore National Security, LLC and other
- # HYPRE Project Developers. See the top-level COPYRIGHT file for details.
- #

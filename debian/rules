@@ -22,7 +22,7 @@ export DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 export DEB_HOST_ARCH ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
 
 %:
-	dh $@ --sourcedirectory=src --with autoreconf
+	dh $@ --sourcedirectory=src
 
 # to avoid lintian warnings
 CPPFLAGS:=$(shell dpkg-buildflags --get CPPFLAGS)
@@ -33,13 +33,12 @@ LDFLAGS:=$(shell dpkg-buildflags --get LDFLAGS)
 # 64-bit build is not supported on all arches
 ifneq (64,$(DEB_HOST_ARCH_BITS))
 export DH_OPTIONS += \
-	-Nlibhypre64-dev -Nlibhypre64 \
-	-Nlibhypre64m-dev -Nlibhypre64m
+	-Nlibhypre64-dev -Nlibhypre64-${HYPRE_SOVERSION} \
+	-Nlibhypre64m-dev -Nlibhypre64m-${HYPRE_SOVERSION}
 endif
 
 # extra flags set to be similar to what petsc requires
-extra_flags_common += --enable-shared \
-  --with-superlu --with-superlu-include=/usr/include/superlu --with-superlu-lib="-lsuperlu" \
+extra_flags_common += --with-superlu --with-superlu-include=/usr/include/superlu --with-superlu-lib="-lsuperlu" \
   --with-dsuperlu --with-dsuperlu-include=/usr/include/superlu-dist --with-dsuperlu-lib="-lsuperlu_dist" \
   --with-MPI-include=$(shell pkg-config --cflags-only-I mpi | awk '{print $$1}' | sed "s/^-I//") \
   --with-MPI-libs="$(shell pkg-config --libs-only-l mpi | sed 's/-l//g')" \
@@ -73,12 +72,12 @@ extra_flags_common += --enable-shared \
   #                         Use global partitioning (default is NO).
   # --enable-fortran        Require a working Fortran compiler (default is YES).
 
-export OMPI_MCA_orte_rsh_agent=/bin/false
+export OMPI_MCA_plm_rsh_agent=/bin/false
+export OMPI_MCA_rmaps_base_oversubscribe=1
 
-override_dh_clean:
-	dh_clean
-	rm -f debian/libhypre.shlibs
+execute_after_dh_clean:
 	rm -rf src64 src64m
+	rm -rf src-static src64-static src64m-static
 
 override_dh_auto_clean:
 	echo "Running clean"
@@ -98,117 +97,136 @@ override_dh_autoreconf:
 	cd src && ./config/update.sh
 	rm -rf src64 && cp -a src src64
 	rm -rf src64m && cp -a src src64m
+	rm -rf src-static && cp -a src src-static
+	rm -rf src64-static && cp -a src src64-static
+	rm -rf src64m-static && cp -a src src64m-static
 
 
 override_dh_auto_configure:
-	dh_auto_configure -- $(extra_flags_common) \
+	dh_auto_configure -- --enable-shared $(extra_flags_common) \
 	  --with-blas=yes --with-blas-lib="$(shell pkg-config --libs blas)" \
 	  --with-lapack=yes \
 	    --with-lapack-lib="$(shell pkg-config --libs lapack)" \
 	    --with-fmangle-lapack="one-underscore"   \
 	  --prefix=$(CURDIR)/debian/tmp/usr
+	dh_auto_configure -Dsrc-static -- $(extra_flags_common) \
+	  --with-blas=yes --with-blas-lib="$(shell pkg-config --libs blas)" \
+	  --with-lapack=yes \
+	    --with-lapack-lib="$(shell pkg-config --libs lapack)" \
+	    --with-fmangle-lapack="one-underscore"   \
+	  --prefix=$(CURDIR)/debian/tmp-static/usr
 ifeq (64,$(DEB_HOST_ARCH_BITS))
 	dh_auto_configure -Dsrc64 -- --enable-bigint --with-libname-ext=64 \
-	  $(extra_flags_common) \
+	  --enable-shared $(extra_flags_common) \
 	  --with-blas=yes --with-blas-lib="$(shell pkg-config --libs blas64)" \
 	  --with-lapack=yes \
 	    --with-lapack-lib="$(shell pkg-config --libs lapack64)" \
 	    --with-fmangle-lapack="one-underscore"   \
 	  --prefix=$(CURDIR)/debian/tmp64/usr
 	dh_auto_configure -Dsrc64m -- --enable-mixedint --with-libname-ext=64m \
-	  $(extra_flags_common) \
+	  --enable-shared $(extra_flags_common) \
 	  --with-blas=yes --with-blas-lib="$(shell pkg-config --libs blas64)" \
 	  --with-lapack=yes \
 	    --with-lapack-lib="$(shell pkg-config --libs lapack64)" \
 	    --with-fmangle-lapack="one-underscore"   \
 	  --prefix=$(CURDIR)/debian/tmp64m/usr
+	dh_auto_configure -Dsrc64-static -- --enable-bigint --with-libname-ext=64 \
+	  $(extra_flags_common) \
+	  --with-blas=yes --with-blas-lib="$(shell pkg-config --libs blas64)" \
+	  --with-lapack=yes \
+	    --with-lapack-lib="$(shell pkg-config --libs lapack64)" \
+	    --with-fmangle-lapack="one-underscore"   \
+	  --prefix=$(CURDIR)/debian/tmp64-static/usr
+	dh_auto_configure -Dsrc64m-static -- --enable-mixedint --with-libname-ext=64m \
+	  $(extra_flags_common) \
+	  --with-blas=yes --with-blas-lib="$(shell pkg-config --libs blas64)" \
+	  --with-lapack=yes \
+	    --with-lapack-lib="$(shell pkg-config --libs lapack64)" \
+	    --with-fmangle-lapack="one-underscore"   \
+	  --prefix=$(CURDIR)/debian/tmp64m-static/usr
 	#dh_auto_configure -p libhypre-complex -- $(extra_flags) --enable-shared --enable-complex
 endif
 
 override_dh_auto_build:
 	dh_auto_build -Dsrc
+	dh_auto_build -Dsrc-static
 ifeq (64,$(DEB_HOST_ARCH_BITS))
 	dh_auto_build -Dsrc64
 	dh_auto_build -Dsrc64m
+	dh_auto_build -Dsrc64-static
+	dh_auto_build -Dsrc64m-static
 endif
 
 override_dh_auto_install:
 	dh_auto_install -Dsrc
+	dh_auto_install -Dsrc-static
 ifeq (64,$(DEB_HOST_ARCH_BITS))
 	dh_auto_install -Dsrc64
 	dh_auto_install -Dsrc64m
+	dh_auto_install -Dsrc64-static
+	dh_auto_install -Dsrc64m-static
 endif
 
-# disable build tests for these arches:
-# ia64 consistently times out on tests
-# armel occasionally times out
-ARCH_NO_TEST_LIST = armel ia64
-
-empty :=
-space := $(empty)$(empty)
-
-# run tests, or not
-RUNTEST=yes
-ifneq (,$(findstring $(space)$(DEB_HOST_ARCH)$(space), $(space)$(ARCH_NO_TEST_LIST)$(space)))
-  RUNTEST=no
-endif
 # don't run tests if the nocheck build option has been specified
+RUNTEST=yes
 ifeq (nocheck,$(findstring nocheck,$(DEB_BUILD_OPTIONS)))
   RUNTEST=no
 endif
 
-# do not run these tests at build time:
-#   TEST_bench, takes an unacceptably long time to run (more than all other tests combined)
-#   TEST_examples, TEST_fei, executables are not available
-#   TEST_timing, the unusual shell arithmetic in efficiency.sh is not supported
-SKIP_TEST_LIST = TEST_bench TEST_examples TEST_fei TEST_timing
+empty :=
+space := $(empty)$(empty)
+
+# ia64 does not fail to run tests, it fails to build them
+ARCH_NO_TEST_LIST = ia64
+
+ifneq (,$(findstring $(space)$(DEB_HOST_ARCH)$(space), $(space)$(ARCH_NO_TEST_LIST)$(space)))
+  RUNTEST=no
+endif
+
+# some arches consistently hang in checkpar tests
+# possibly due to pmix, see hypre upstream issue #955
+ARCH_NO_CHECKPAR_LIST = ppc64el hurd-i386
+
+ifneq (,$(findstring $(space)$(DEB_HOST_ARCH)$(space), $(space)$(ARCH_NO_CHECKPAR_LIST)$(space)))
+  RUN_CHECKPAR=no
+endif
+
+
+# Standard tolerance 1e-6 is too tight on many arches
+# so relax them to 1e-3
+ARCH_RELAX_TOL_LIST = arm64 i386 ppc64el riscv64 s390x hppa loong64 powerpc ppc64
+
+ifneq (,$(findstring $(space)$(DEB_HOST_ARCH)$(space), $(space)$(ARCH_RELAX_TOL_LIST)$(space)))
+  RELAX_TOL = HYPRE_CHECKPAR_TOL=1e-3
+endif
 
 ifeq (64,$(DEB_HOST_ARCH_BITS))
-TEST_SRC_DIRS = src src64
+TEST_SRC_DIRS = src src-static src64 src64-static
 else
-TEST_SRC_DIRS = src
+TEST_SRC_DIRS = src src-static
 endif
 
 override_dh_auto_test:
 	set -e; \
+	  echo "max available processors nproc=`nproc`"; \
 	if [ "$(RUNTEST)" = "no" ]; then \
 	  echo Tests have been disabled on $(DEB_HOST_ARCH); \
-	else echo "Building tests"; \
+	else echo "=== Building tests ==="; \
 	  for build in $(TEST_SRC_DIRS); do \
+	    echo "=== Running tests from $$build ==="; \
+	    cd $$build; \
 	    TEST_LD_LIBRARY_PATH=$(CURDIR)/$$build/lib:$(LD_LIBRARY_PATH); \
-	    LD_LIBRARY_PATH=$${TEST_LD_LIBRARY_PATH} $(MAKE) -C $$build test VERBOSE=1 HYPRE_LIBNAME_EXT=$${build#src}; \
-	    echo "Running tests from $$build"; \
-	    set -e; \
-	    cd $$build/test; \
-	    test_return="ok"; \
-	    echo "tests for $$build commenced at `date`"; \
-	    ALL_TEST_START=`date +%s`; \
-	    for TEST in TEST_*; do \
-	      case " $(SKIP_TEST_LIST) " in \
-	      *\ $${TEST}\ *) echo "skipping $${TEST}";; \
-	      *) echo -n "running $${TEST} ... "; \
-	        TEST_START=`date +%s`; \
-	        if LD_LIBRARY_PATH=$${TEST_LD_LIBRARY_PATH} ./runtest.sh -t $${TEST}/*.sh >$${TEST}.stdout 2>$${TEST}.stderr ; then \
-	          echo ok; \
-	        else \
-	          test_return=$$?; \
-	          echo "error found with error code $${test_return}"; \
-	          echo "===== error logs for $${TEST} in $$build ====="; \
-	          echo "$${TEST} stdout:"; \
-	          cat $${TEST}.stdout; \
-	          echo "$${TEST} stderr:"; \
-	          cat $${TEST}.stderr; \
-	          echo "===== end error logs for $${TEST} in $$build with error code $${test_return} ====="; \
-	        fi; \
-	        echo "test $${TEST} in $$build completed in $$(( `date +%s` - $$TEST_START )) s";; \
-	      esac; \
-	    done; \
-	    if [ $${test_return} != "ok" ]; then \
-	        echo "Tests failed with last error code $${test_return}"; \
-	        return $${test_return}; \
+	    echo "== running make check (single) =="; \
+	    LD_LIBRARY_PATH=$${TEST_LD_LIBRARY_PATH} make check; \
+	    echo "== running make check (MPI -P 3 1 1) =="; \
+	    LD_LIBRARY_PATH=$${TEST_LD_LIBRARY_PATH} CHECKRUN="mpirun -n 3" PARMS='-P 3 1 1' make check; \
+	    if [ "x$(RUN_CHECKPAR)" = "xno" ]; then \
+	      echo "== skipping make checkpar on $(DEB_HOST_ARCH) =="; \
+	    else \
+	      echo "== running make checkpar =="; \
+	      LD_LIBRARY_PATH=$${TEST_LD_LIBRARY_PATH} make checkpar $(RELAX_TOL); \
 	    fi; \
-	    echo "all tests in $$build completed at `date` in $$(( `date +%s` - $$ALL_TEST_START )) s"; \
-	    cd ../..; \
+	    cd ..; \
 	  done; \
 	fi
 
@@ -217,22 +235,17 @@ override_dh_auto_test:
 # the versioned so files in a libhypre-dev.install file
 # Easier to just override instead
 override_dh_install:
-	dh_install -p libhypre usr/lib/*/*${HYPRE_SOVERSION}.so
+	dh_install -p libhypre-${HYPRE_SOVERSION} usr/lib/*/*${HYPRE_SOVERSION}.so
 	dh_install -p libhypre-dev --exclude=${HYPRE_SOVERSION} usr/lib/*/*
 	dh_install -p libhypre-dev usr/include/hypre
+	dh_install -p libhypre-dev --sourcedir=debian/tmp-static usr/lib/*/libHYPRE.a
 ifeq (64,$(DEB_HOST_ARCH_BITS))
-	dh_install --sourcedir=debian/tmp64 -p libhypre64 usr/lib/*/*${HYPRE_SOVERSION}.so
+	dh_install --sourcedir=debian/tmp64 -p libhypre64-${HYPRE_SOVERSION} usr/lib/*/*${HYPRE_SOVERSION}.so
 	dh_install --sourcedir=debian/tmp64 -p libhypre64-dev --exclude=${HYPRE_SOVERSION} usr/lib/*/*
 	dh_install --sourcedir=debian/tmp64 -p libhypre64-dev usr/include/hypre/* usr/include/hypre64
-	dh_install --sourcedir=debian/tmp64m -p libhypre64m usr/lib/*/*${HYPRE_SOVERSION}.so
+	dh_install --sourcedir=debian/tmp64-static -p libhypre64-dev usr/lib/*/libHYPRE64.a
+	dh_install --sourcedir=debian/tmp64m -p libhypre64m-${HYPRE_SOVERSION} usr/lib/*/*${HYPRE_SOVERSION}.so
 	dh_install --sourcedir=debian/tmp64m -p libhypre64m-dev --exclude=${HYPRE_SOVERSION} usr/lib/*/*
 	dh_install --sourcedir=debian/tmp64m -p libhypre64m-dev usr/include/hypre/* usr/include/hypre64m
+	dh_install --sourcedir=debian/tmp64m-static -p libhypre64m-dev usr/lib/*/libHYPRE64m.a
 endif
-
-override_dh_makeshlibs:
-	sed "s/__HYPRE_VERSION__/$(HYPRE_SOVERSION)/g; s/__HYPRE_VERSION_NEXT__/$(HYPRE_NEXT_VERSION)/g" debian/libhypre.shlibs.in > debian/libhypre.shlibs
-ifeq (64,$(DEB_HOST_ARCH_BITS))
-	sed "s/__HYPRE_VERSION__/$(HYPRE_SOVERSION)/g; s/__HYPRE_VERSION_NEXT__/$(HYPRE_NEXT_VERSION)/g" debian/libhypre64.shlibs.in > debian/libhypre64.shlibs
-	sed "s/__HYPRE_VERSION__/$(HYPRE_SOVERSION)/g; s/__HYPRE_VERSION_NEXT__/$(HYPRE_NEXT_VERSION)/g" debian/libhypre64m.shlibs.in > debian/libhypre64m.shlibs
-endif
-	dh_makeshlibs
